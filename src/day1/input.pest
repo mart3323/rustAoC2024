@@ -1,0 +1,11 @@
+//
+// Created by intellij-pest on 2024-12-01
+// input
+// Author: Reigo
+//
+
+whitespace = _{ (" " | "\t")* }
+int = { ('0'..'9')+ }
+
+line = {int ~ whitespace ~ int}
+input = {(line ~ "\n")+}
