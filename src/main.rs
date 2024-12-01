@@ -1,13 +1,13 @@
-mod day0;
+mod day1;
 
 use std::error::Error;
 use std::fs;
 use std::path::Path;
 use std::process::exit;
-use crate::day0::Day0;
+use crate::day1::Day1;
 
 fn main() {
-    let d1 = Box::new(Day0 {});
+    let d1 = Box::new(Day1 {});
     match d1.run() {
         Ok((res1, res2)) => {
             println!("Day1 Part 1 result: {}", res1.unwrap_or_else(|e| { e.to_string()}));
@@ -38,9 +38,10 @@ pub trait AocSolver<Input, Input2> {
         println!("Parsing files");
         let demo = read_file(Path::new("src").join(Self::PATH).join("demo.txt").as_path());
         let expected = read_file(Path::new("src").join(Self::PATH).join("demo_solution.txt").as_path());
+        let expected2 = read_file(Path::new("src").join(Self::PATH).join("demo_solution_2.txt").as_path());
         let full = read_file(Path::new("src").join(Self::PATH).join("full.txt").as_path());
         
-        // Validation
+        // Validation part 1
         {
             let parsed = self.parse(&demo)?;
 
@@ -49,6 +50,20 @@ pub trait AocSolver<Input, Input2> {
                 eprintln!("Solution does not match expected results!");
                 eprintln!("Solution: {}", solution);
                 eprintln!("Expected result: {}", expected);
+                exit(1)
+            } else {
+                println!("Validation passed: {}", solution);
+            }
+        }
+        // Validation part 2
+        {
+            let parsed = self.parse2(&demo)?;
+
+            let solution = self.solve2(parsed)?;
+            if expected2 != solution {
+                eprintln!("Solution does not match expected results!");
+                eprintln!("Solution: {}", solution);
+                eprintln!("Expected result: {}", expected2);
                 exit(1)
             } else {
                 println!("Validation passed: {}", solution);
