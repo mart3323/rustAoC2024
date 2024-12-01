@@ -1,0 +1,4 @@
+/target
+.jj
+!src/day0/*.txt
+src/*/*.txt
