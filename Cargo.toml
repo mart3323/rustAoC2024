@@ -5,3 +5,4 @@ edition = "2021"
 
 [dependencies]
 nom = "8.0.0-alpha2"
+log = "0.4.22"
