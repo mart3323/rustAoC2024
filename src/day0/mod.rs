@@ -1,23 +1,22 @@
-use std::error::Error;
 use std::str::FromStr;
+use crate::utils::read_input_files;
 
-pub struct Day0 {
-
+pub fn solve_day0() {
+    let inputs = read_input_files("day0");
+    let demo = u64::from_str(&inputs.demo).unwrap();
+    let full = u64::from_str(&inputs.full).unwrap();
+    let expected = inputs.expected;
+    let actual = solve(demo);
+    assert_eq!(expected, actual);
+    println!("Solution to part 1: {}", solve(full));
+    let expected = inputs.expected2;
+    let actual = solve2(demo);
+    assert_eq!(expected, actual);
+    println!("Solution to part 2: {}", solve2(full));
 }
-impl crate::AocSolver<u64, u64> for Day0 {
-    const PATH: &'static str = "day0";
-
-    fn parse(&self, input: &String) -> Result<u64, Box<dyn Error>> {
-        u64::from_str(&input).map_err(|e| Box::new(e).into())
-    }
-    fn solve(&self, input: u64) -> Result<String, Box<dyn Error>> {
-        Ok((input + input).to_string())
-    }
-
-    fn parse2(&self, input: &String) -> Result<u64, Box<dyn Error>> {
-        self.parse(input)
-    }
-    fn solve2(&self, input: u64) -> Result<String, Box<dyn Error>> {
-        Ok((input * input).to_string())
-    }
+fn solve(input: u64) -> String {
+    (input + input).to_string()
+}
+fn solve2(input: u64) -> String {
+    (input * input).to_string()
 }
