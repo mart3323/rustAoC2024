@@ -1,10 +1,6 @@
-use crate::utils::{read_file, read_input_file, read_input_files};
+use crate::utils::{read_input_file, read_input_files};
 use nom;
-use nom::branch::alt;
-use nom::bytes::tag;
-use nom::combinator::complete;
-use nom::multi::fold_many1;
-use nom::{IResult, Parser};
+use nom::{Parser}; // needed to call map_res on parsers for some reason
 
 pub fn solve_day3() {
     let files = read_input_files("day3");
@@ -20,66 +16,76 @@ pub fn solve_day3() {
     let solution = solve_advanced(files.full);
     println!("Solution part 2: {}", solution);
 }
+
 // region parsers
-fn parseInt(input: &str) -> IResult<&str, u64> {
-    nom::character::complete::digit1
-        .map_res(str::parse)
-        .parse(input)
+#[derive(Debug, Clone)]
+enum Instruction {
+    Mul(u64, u64),
+    Skip,
+    Do,
+    Dont,
+}
+fn parse_int(input: &str) -> nom::IResult<&str, u64> {
+    use nom::character::complete::digit1;
+    digit1.map_res(str::parse).parse(input)
+}
+
+fn parse_instruction(input: &str) -> nom::IResult<&str, Instruction> {
+    use nom::branch::alt;
+    use nom::bytes::tag;
+    use nom::combinator::value;
+    use Instruction::*;
+
+    let token_do = value(Do, tag("do()"));
+    let token_dont = value(Dont, tag("don't()"));
+    let token_mul = (tag("mul("), parse_int, tag(","), parse_int, tag(")"))
+        .map(|(_, left, _, right, _)| Mul(left, right));
+    let token_invalid = value(Skip, nom::bytes::complete::take(1usize));
+
+    alt((token_do, token_dont, token_mul, token_invalid)).parse(input)
 }
 // endregion
 
 fn solve_simple(input: String) -> String {
-    let values = alt((
-        (tag("mul("), parseInt, tag(","), parseInt, tag(")"))
-            .map(|(_, left, _, right, _)| left * right),
-        nom::bytes::complete::take(1usize).map(|_| 0),
-    ));
-    let sum = fold_many1(values, || 0, |a, b| a + b);
-    complete(sum).parse(input.as_str()).unwrap().1.to_string()
-}
-fn solve_advanced(input: String) -> String {
-    #[derive(Debug)]
-    enum Symbol {
-        Mul(u64, u64),
-        Skip,
-        Do,
-        Dont,
-    }
-    let values = alt((
-        tag("do()").map(|_| Symbol::Do),
-        tag("don't()").map(|_| Symbol::Dont),
-        (tag("mul("), parseInt, tag(","), parseInt, tag(")"))
-            .map(|(_, left, _, right, _)| Symbol::Mul(left, right)),
-        nom::bytes::complete::take(1usize).map(|_| Symbol::Skip),
-    ));
-    enum State {
-        On(u64),
-        Off(u64),
-    }
-    impl State {
-        fn value(self) -> u64 {
-            match self {
-                State::On(v) => v,
-                State::Off(v) => v,
-            }
-        }
-    }
-    let sum = fold_many1(
-        values,
-        || State::On(0),
-        |a, b| {
-            match a {
-                State::Off(value) => match (b) {
-                    Symbol::Do => State::On(value),
-                    _ => a,
-                },
-                State::On(value) => match(b) {
-                    Symbol::Dont => State::Off(value),
-                    Symbol::Mul(a,b) => State::On(value + (a*b)),
-                    _ => a
-                }
-            }
+    use nom::multi::fold_many1;
+
+    let mut sum = fold_many1(
+        parse_instruction,
+        || 0,
+        |sum, instruction| match instruction {
+            Instruction::Mul(a, b) => sum + (a * b),
+            _ => sum,
         },
     );
-    complete(sum).parse(input.as_str()).unwrap().1.value().to_string()
+    sum.parse(input.as_str()).unwrap().1.to_string()
+}
+
+fn solve_advanced(input: String) -> String {
+    use nom::multi::fold_many1;
+    use Instruction::*;
+
+    struct State(bool, u64);
+    impl State {
+        fn value(self) -> u64 {
+            self.1
+        }
+    }
+
+    let mut sum = fold_many1(
+        parse_instruction,
+        || State(true, 0),
+        |state, instruction| match instruction {
+            Mul(a, b) => {
+                if state.0 {
+                    State(true, state.1 + (a * b))
+                } else {
+                    state
+                }
+            }
+            Skip => state,
+            Do => State(true, state.1),
+            Dont => State(false, state.1),
+        },
+    );
+    sum.parse(input.as_str()).unwrap().1.value().to_string()
 }
