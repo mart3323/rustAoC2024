@@ -1,12 +1,13 @@
 use crate::utils::read_input_files;
 use nom::multi::{many1, separated_list1};
 use nom::Parser;
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet, LinkedList, VecDeque};
 
 // region input
 struct PairOrderingRules(HashMap<u32, HashSet<u32>>);
 
 #[derive(Debug)]
+#[derive(Clone)]
 struct Update(Vec<u32>);
 
 fn parse_int(input: &str) -> nom::IResult<&str, u32> {
@@ -71,6 +72,42 @@ impl Update {
         };
         return true;
     }
+    fn fix(&mut self, rules: &PairOrderingRules) {
+        loop {
+            let mut invalid_index = None;
+            let mut forbidden = HashSet::with_capacity(rules.0.len());
+            // Find invalid index
+            for (i, page_number) in self.0.iter().enumerate() {
+                if let Some(befores) = rules.0.get(&page_number) {
+                    for before in befores {
+                        forbidden.insert(before);
+                    }
+                }
+                if forbidden.contains(page_number) {
+                    invalid_index = Some(i);
+                    break;
+                }
+            }
+            if invalid_index == None {
+                return // Entire list passed validation
+            }
+            let page_number = self.0.remove(invalid_index.unwrap());
+            let mut insertion_index = None;
+            for (i, nr) in self.0.iter().enumerate() {
+                if let Some(befores) = rules.0.get(nr) {
+                    if befores.contains(&page_number) {
+                        insertion_index = Some(i);
+                        break;
+                    }
+                }
+            }
+            if let Some(index) = insertion_index {
+                self.0.insert(index, page_number);
+            } else {
+                panic!("Number was invalid before, but now passed the entire list without conflict. This should not happen")
+            }
+        };
+    }
 }
 fn solve_simple(rules: &PairOrderingRules, updates: &Vec<Update>) -> u32 {
     let mut total = 0;
@@ -81,11 +118,16 @@ fn solve_simple(rules: &PairOrderingRules, updates: &Vec<Update>) -> u32 {
         }
     }
     return total;
-    
-    updates.iter()
-        .filter(|update| update.validate(rules))
-        .map(|update| update.get_middle_page())
-        .sum()
+}
+fn solve_advanced(rules: &PairOrderingRules, updates: &mut Vec<Update>) -> u32 {
+    let mut total = 0;
+    for upd in updates {
+        if !upd.validate(rules) {
+            upd.fix(rules);
+            total += upd.get_middle_page();
+        }
+    }
+    return total;
 }
 
 pub fn solve_day5() {
@@ -94,7 +136,12 @@ pub fn solve_day5() {
     let full = parse_file(&files.full).expect("Full file should parse").1;
     let demo_expected: u32 = str::parse(&files.expected).expect("Solution should be a valid number");
 
-    assert_eq!(solve_simple(&demo.0, &demo.1), demo_expected);
-    println!("Demo 1 passed, full solution is {}", solve_simple(&full.0, &full.1));
+    assert_eq!(solve_simple(&demo.0, &demo.1), 143);
+    println!("Demo 1 passed");
+    println!("full solution is {}", solve_simple(&full.0, &full.1));
 
+    assert_eq!(solve_advanced(&demo.0, &mut demo.1.clone()), 123);
+    println!("Demo 2 passed");
+    println!("full solution is {}", solve_advanced(&full.0, &mut full.1.clone()));
+    
 }
