@@ -26,3 +26,23 @@ pub fn read_input_files(day: &str) -> InputFiles{
         full: read_input_file(day, "full.txt"),
     }
 }
+
+/** https://stackoverflow.com/questions/13322479/how-to-benchmark-programs-in-rust */
+pub struct Timer(&'static str, std::time::SystemTime);
+impl Drop for Timer {
+    fn drop(&mut self) {
+        println!(
+            "{} finished in {:?} ms",
+            self.0,
+            self.1.elapsed().unwrap_or_default()
+        );
+    }
+}
+
+impl Timer {
+    pub fn start(op: &'static str) -> Timer {
+        let now = std::time::SystemTime::now();
+
+        Timer(op, now)
+    }
+}

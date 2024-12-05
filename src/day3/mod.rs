@@ -1,6 +1,7 @@
 use crate::utils::{read_input_file, read_input_files};
 use nom;
-use nom::{Parser}; // needed to call map_res on parsers for some reason
+use nom::{Parser};
+// needed to call map_res on parsers for some reason
 
 pub fn solve_day3() {
     let files = read_input_files("day3");
@@ -34,6 +35,7 @@ fn parse_instruction(input: &str) -> nom::IResult<&str, Instruction> {
     use nom::branch::alt;
     use nom::bytes::tag;
     use nom::combinator::value;
+    use nom::combinator::complete;
     use Instruction::*;
 
     let token_do = value(Do, tag("do()"));
@@ -42,7 +44,8 @@ fn parse_instruction(input: &str) -> nom::IResult<&str, Instruction> {
         .map(|(_, left, _, right, _)| Mul(left, right));
     let token_invalid = value(Skip, nom::bytes::complete::take(1usize));
 
-    alt((token_do, token_dont, token_mul, token_invalid)).parse(input)
+    let token_valid = complete(alt((token_do, token_dont, token_mul)));
+    alt((token_valid, token_invalid)).parse(input)
 }
 // endregion
 
