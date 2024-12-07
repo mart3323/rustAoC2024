@@ -34,7 +34,9 @@ pub fn solve_day2() {
         let actual = solve2(&demo);
         let expected = inputs.expected2;
         assert_eq!(actual, expected);
-        let solution = solve2(&full);
+        let solution = solve2_naive(&full);
+        let solution2 = solve2(&full);
+        assert_eq!(solution, solution2);
         println!("Part2: {}", solution);
     }
 }
@@ -61,85 +63,82 @@ fn report_is_safe(report: &Report) -> bool {
     }
     return true;
 }
-fn valid_pair(a: i32, b: i32) -> bool {
+fn is_valid_pair(a: i32, b: i32) -> bool {
     let diff = (b - a).abs();
     1 <= diff && diff <= 3
 }
+fn are_sequential(a: i32, b: i32, c: i32) -> bool {
+    (a - b).signum() == (b - c).signum()
+}
 
 fn report_is_safeish(report: &Report) -> bool {
-    #[derive(PartialEq, Debug)]
-    enum ErrorLocation {
-        Unknown,
-        Between(usize, usize),
-        Error,
-    }
-    impl ErrorLocation {
-        fn narrow(&self, start: usize, end: usize) -> ErrorLocation {
-            let newvalue = self._narrow(start, end);
-            return newvalue;
+    match report.len() {
+        0 => true,
+        1 => true,
+        2 => true,
+        3 => {
+            is_valid_pair(report[0], report[1])
+                || is_valid_pair(report[0], report[2])
+                || is_valid_pair(report[1], report[2])
         }
-        fn _narrow(&self, start: usize, end: usize) -> ErrorLocation {
-            match self {
-                ErrorLocation::Unknown => ErrorLocation::Between(start, end),
-                ErrorLocation::Between(from, to) => {
-                    let &from = from.max(&start);
-                    let &to = to.min(&(end));
-                    if to > from {
-                        ErrorLocation::Between(from, to)
-                    } else {
-                        ErrorLocation::Error
-                    }
-                }
-                _ => ErrorLocation::Error,
+        _ => {
+            let a = report[0];
+            let b = report[1];
+            let c = report[2];
+            let d = report[3];
+            let expected_signum = ((b - a).signum() + (c - b).signum() + (d - c).signum()).signum();
+
+            if expected_signum == 0 {
+                return false;
             }
-        }
-    }
+            let is_valid_pair_with_dir =
+                |a: i32, b: i32| is_valid_pair(a, b) && (b - a).signum() == expected_signum;
 
-    if report.is_empty() {
-        return true;
-    }
-    let mut error_location = ErrorLocation::Unknown;
-
-    for (i, pair) in report.windows(3).enumerate() {
-        let a = pair[0];
-        let b = pair[1];
-        let c = pair[2];
-        if (b - a).signum() != (c - b).signum() {
-            error_location = error_location.narrow(i, i + 2)
-        }
-        if !valid_pair(a, b) {
-            error_location = error_location.narrow(i, i + 1)
-        }
-        if !valid_pair(b, c) {
-            error_location = error_location.narrow(i + 1, i + 2)
-        }
-        if error_location == ErrorLocation::Error {
-            return false;
-        }
-    }
-    match error_location {
-        ErrorLocation::Error => false,
-        ErrorLocation::Between(start, end) => {
-            for i in start..end+1 {
-                if i == 0 {
-                    return true;
-                } else if i == report.len()-1 {
-                    return true;
-                } else {
-                    if let Some(left) = report.get(i - 1) {
-                        if let Some(right) = report.get(i + 1) {
-                            if valid_pair(*left, *right) {
-                                let mut subreport = report.clone();
-                                subreport.remove(i);
-                                return report_is_safe(&subreport);
+            #[derive(Debug)]
+            enum Error {
+                Either(usize),
+                Must(usize),
+                Unknown,
+            }
+            let mut error_found_at = Error::Unknown;
+            for i in 0..report.len()-1 {
+                if !is_valid_pair_with_dir(report[i], report[i + 1]) {
+                    match error_found_at {
+                        Error::Must(index) if index == i => {
+                            /* OK */
+                        }
+                        Error::Either(prev_index) if prev_index == i - 1 => {
+                            let can_remove =
+                                is_valid_pair_with_dir(report[i - 1], report[i + 1]);
+                            if (can_remove) {
+                                error_found_at = Error::Must(i)
+                            } else {
+                                return false;
                             }
+                        }
+                        Error::Unknown => {
+                            let can_remove_2nd = i == report.len() - 2
+                                || is_valid_pair_with_dir(report[i], report[i + 2]);
+                            let can_remove_1st =
+                                i == 0 || is_valid_pair_with_dir(report[i - 1], report[i + 1]);
+                            if can_remove_2nd && can_remove_1st {
+                                error_found_at = Error::Either(i)
+                            } else if can_remove_1st {
+                                error_found_at = Error::Must(i)
+                            } else if can_remove_2nd {
+                                error_found_at = Error::Must(i + 1)
+                            } else {
+                                return false;
+                            }
+                        }
+                        _ => {
+                            return false;
                         }
                     }
                 }
             }
-            false
+            return true;
         }
-        ErrorLocation::Unknown => true,
     }
 }
 fn report_is_safeish_dumb_version(report: &Report) -> bool {
@@ -160,10 +159,22 @@ fn solve(reports: &Input) -> String {
         .count()
         .to_string()
 }
-fn solve2(reports: &Input) -> String {
+fn solve2_naive(reports: &Input) -> String {
+    for report in reports {
+        let a = report_is_safeish_dumb_version(report);
+        let b = report_is_safeish(report);
+        assert_eq!(a, b);
+    }
     reports
         .iter()
         .filter(|r| report_is_safeish_dumb_version(r))
+        .count()
+        .to_string()
+}
+fn solve2(reports: &Input) -> String {
+    reports
+        .iter()
+        .filter(|r| report_is_safeish(r))
         .count()
         .to_string()
 }
