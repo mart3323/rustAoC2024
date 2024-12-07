@@ -1,4 +1,3 @@
-use crate::utils::read_input_file;
 use nom::Parser;
 use std::cmp::PartialEq;
 use std::collections::{HashSet, VecDeque};
@@ -10,6 +9,7 @@ use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering::Relaxed;
 use std::thread;
 use crate::day6::Cell::Obstructed;
+use crate::utils::read_input_file;
 
 #[derive(Eq, PartialEq, Clone, Copy)]
 enum Cell {
