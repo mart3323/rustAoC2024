@@ -2,8 +2,9 @@ use std::iter::Skip;
 use std::ops::AddAssign;
 use std::str::Chars;
 use std::sync::Arc;
-use crate::utils::read_input_files;
-use std::sync::atomic::{AtomicU32, Ordering};
+use crate::utils::{read_input_files, InputFiles};
+use std::sync::atomic::{AtomicU32, AtomicUsize, Ordering};
+use std::sync::atomic::Ordering::Relaxed;
 use std::thread;
 use nom::Input;
 
@@ -48,7 +49,9 @@ impl SearchState {
         }
     }
 }
-fn process_chars(chars: Chars, total: Arc<AtomicU32>) {
+fn process_chars<T>(chars: T, total: &Arc<AtomicUsize>)
+    where T : Iterator<Item = char>
+{
     let mut state = SearchState::None;
     let mut score;
 
@@ -61,58 +64,44 @@ fn process_chars(chars: Chars, total: Arc<AtomicU32>) {
 }
 pub fn solve_day4() {
     let files = read_input_files("day4");
-    let width = files.demo.lines().next().unwrap().len();
-    let height = files.demo.lines().count(); // Blank line at the end;
 
-    let found : Arc<AtomicU32> = Arc::new(AtomicU32::new(0));
-
-    let input = files.demo.replace("\r", "").replace("\n", "");
-    let input = input.as_str();
-    thread::scope(|scope| {
-        let vertical_offset = (width) * (height /* skip n-1 lines to get from first to last */);
-        let horizontal_offset = width;
-        for col in 0..width {
-            let str = &input;
-            let total = Arc::clone(&found);
-            scope.spawn(move || {
-                let mut state = SearchState::None;
-                let mut score;
-                println!("col {}: {}", col, str.chars().step_by(width).collect::<String>());
-                for c in  str.chars().step_by(width) {
-                    (state, score) = state.process_char(c as u8);
-                    if score {
-                        println!("Match found in col {}", col);
-                        total.fetch_add(1, Ordering::Relaxed);
-                    }
-                };
-            });
-        }
-        for row in 0..height {
-            let str = &input[width*row..(width*(row+1))];
-            let total = Arc::clone(&found);
-            scope.spawn(move || {
-                let mut state = SearchState::None;
-                let mut score;
-                println!("Row {}: {}", row, str);
-                for c in str.chars() {
-                    (state, score) = state.process_char(c as u8);
-                    if score {
-                        println!("Match found in row {}", row);
-                        total.fetch_add(1, Ordering::Relaxed);
-                    }
-                };
-            });
-        }
-    });
-    println!("Maybe solution? {}", found.load(Ordering::Relaxed));
-    // todo!();
-    // assert_eq!(files.expected, solve_simple(files.demo.clone()));
-    // println!("Validation of part 1 passed, processing full file");
-    // let solution = solve_simple(files.full.clone());
-    // println!("Solution part 1: {}", solution);
+    assert_eq!(solve_simple(&files.demo), 18);
+    println!("Validation of part 1 passed, processing full file");
+    let part1 = solve_simple(&files.full);
+    println!("Solution part 1: {}", part1);
     //
     // assert_eq!(files.expected2, solve_advanced(demo2));
     // println!("Validation of part 2 passed, processing full file");
     // let solution = solve_advanced(files.full);
     // println!("Solution part 2: {}", solution);
+}
+
+fn solve_simple(input: &str) -> usize {
+    let width = input.lines().next().unwrap().len();
+    let height = input.lines().count(); // Blank line at the end;
+    let input = input.replace("\r", "").replace("\n", "");
+
+    let found: Arc<AtomicUsize> = Arc::new(AtomicUsize::new(0));
+    thread::scope(|scope| {
+        for row in 0..height {
+            let left_to_right = input.chars().skip(width * row).take(width);
+            scope.spawn(|| process_chars(left_to_right, &found));
+            if row != 0 {
+                let left_to_bottom = input.chars().skip(width * row).step_by(width + 1);
+                let right_to_bottom = input.chars().skip(width * row + width - 1).step_by(width - 1);
+                scope.spawn(|| process_chars(left_to_bottom, &found));
+                scope.spawn(|| process_chars(right_to_bottom, &found));
+            }
+        }
+        for col in 0..width {
+            let top_to_bottom = input.chars().skip(col).step_by(width);
+            scope.spawn(|| process_chars(top_to_bottom, &found));
+            
+            let top_to_right = input.chars().skip(col).step_by(width + 1).take(width - col);
+            let top_to_left = input.chars().skip(col).step_by(width - 1).take(col + 1);
+            scope.spawn(|| process_chars(top_to_left, &found));
+            scope.spawn(|| process_chars(top_to_right, &found));
+        }
+    });
+    return found.load(Relaxed);
 }
