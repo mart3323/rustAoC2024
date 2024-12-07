@@ -160,11 +160,6 @@ fn solve(reports: &Input) -> String {
         .to_string()
 }
 fn solve2_naive(reports: &Input) -> String {
-    for report in reports {
-        let a = report_is_safeish_dumb_version(report);
-        let b = report_is_safeish(report);
-        assert_eq!(a, b);
-    }
     reports
         .iter()
         .filter(|r| report_is_safeish_dumb_version(r))
