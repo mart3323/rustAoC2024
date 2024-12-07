@@ -43,14 +43,13 @@ fn benchmark(function: fn(), name: &str) -> usize {
 }
 
 fn main() {
-    solve_day6();
-    // let time6 = benchmark(solve_day6, "day5");
+    let time6 = benchmark(solve_day6, "day6");
     // let time5 = benchmark(solve_day5, "day5");
     // let time3 = benchmark(solve_day3, "day3");
     // let time2 = benchmark(solve_day2, "day2");
     // let time0 = benchmark(solve_day0, "day0");
 
-    // println!("time5: {}", time6);
+    println!("time6: {}", time6);
     // println!("time5: {}", time5);
     // println!("time3: {}", time3);
     // println!("time2: {}", time2);

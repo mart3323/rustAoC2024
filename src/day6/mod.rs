@@ -1,8 +1,15 @@
 use crate::utils::read_input_file;
 use nom::Parser;
 use std::cmp::PartialEq;
+use std::collections::{HashSet, VecDeque};
 use std::fmt::{Debug, Display, Formatter};
+use std::num::TryFromIntError;
 use std::ops::Index;
+use std::sync::Arc;
+use std::sync::atomic::AtomicUsize;
+use std::sync::atomic::Ordering::Relaxed;
+use std::thread;
+use crate::day6::Cell::Obstructed;
 
 #[derive(Eq, PartialEq, Clone, Copy)]
 enum Cell {
@@ -27,13 +34,13 @@ impl TryFrom<char> for Cell {
 impl Display for Cell {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Cell::Free => write!(f, "."),
-            Cell::Visited => write!(f, "X"),
-            Cell::Obstructed => write!(f, "#"),
+            Cell::Free => write!(f, "·"),
+            Cell::Visited => write!(f, "⨯"),
+            Cell::Obstructed => write!(f, "█"),
         }
     }
 }
-#[derive(Eq, PartialEq, Clone, Copy)]
+#[derive(Eq, PartialEq, Clone, Copy, Debug, Hash)]
 enum Direction {
     North,
     East,
@@ -51,7 +58,7 @@ impl Direction {
         }
     }
 }
-#[derive(Eq, PartialEq, Clone, Copy)]
+#[derive(Eq, PartialEq, Clone, Copy, Debug, Hash)]
 struct Position {col: isize, row: isize, dir: Direction}
 impl Position {
     fn offset(&self, dir: Direction, distance: isize) -> Self {
@@ -75,6 +82,12 @@ impl Position {
         newpos.dir = newpos.dir.right();
         newpos
     }
+    /// (col, row)
+    fn as_usize_pair(self) -> Result<(usize, usize), TryFromIntError> {
+        let col = usize::try_from(self.col)?;
+        let row = usize::try_from(self.row)?;
+        Ok((col, row))
+    }
 }
 #[derive(Clone)]
 struct State {
@@ -89,6 +102,9 @@ impl State {
     fn visit(&mut self, row: usize, col: usize) {
         self.map[row * self.width + col] = Cell::Visited;
     }
+    fn is_free(&self, row: usize, col: usize) -> bool {
+        self.map[row * self.width + col] == Cell::Free
+    }
     fn is_passable(&self, row: usize, col: usize) -> bool {
         let x = *self.map.index(col + (row * self.width));
         x != Cell::Obstructed
@@ -96,11 +112,15 @@ impl State {
     fn is_on_map(&self, row: usize, col: usize) -> bool {
         col < self.width && row < self.height
     }
+    fn set_cell(&mut self, row: usize, col: usize, cell: Cell) {
+        self.map[row * self.width + col] = cell;
+        // ^ Shouldn't this be illegal? am i not mutating an immutable reference?
+    }
     /// Simulates one step of the basic task (first half)
     /// returns false if the guard has walked off the map and no more simulation can be performed
     fn tick_basic(&mut self) -> bool {
         let pos = self.guard_position;
-        if let (Ok(col), Ok(row)) = (usize::try_from(pos.col), usize::try_from(pos.row)) {
+        if let Ok((col, row)) = pos.as_usize_pair() {
             if self.is_on_map(row, col) {
                 // OK: Still on map
                 self.visit(row, col)
@@ -114,7 +134,7 @@ impl State {
         }
         
         let fwd = pos.step_forward();
-        if let (Ok(col), Ok(row)) = (usize::try_from(fwd.col), usize::try_from(fwd.row)) {
+        if let Ok((col, row)) = fwd.as_usize_pair() {
             if self.is_on_map(row, col) && !self.is_passable(row, col) {
                 self.guard_position = self.guard_position.turn_right()
             } else {
@@ -134,7 +154,13 @@ impl Display for State {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         for y in 0..self.height {
             for x in 0..self.width {
-                if self.guard_position == (Position{ col: x as isize, row: y as isize, dir: Direction::North }) {
+                if self.guard_position.col == x as isize && self.guard_position.row == y as isize {
+                    match self.guard_position.dir {
+                        Direction::North => write!(f, "{}", "⮝")?,
+                        Direction::East => write!(f, "{}", "⮞")?,
+                        Direction::South => write!(f, "{}", "⮟")?,
+                        Direction::West => write!(f, "{}", "⮜")?,
+                    }
                 } else {
                     write!(f, "{}", self.map[x + self.width*y])?;
                 }
@@ -171,6 +197,59 @@ fn solve_simple(initial_state: &State) -> usize {
     }
     state.count_visited()
 }
+fn solve_advanced(initial_state: &State) -> usize {
+    let initial_pos = initial_state.guard_position;
+    let mut state = initial_state.clone();
+    let mut candidate_positions: Vec<Position> = Vec::new();
+    loop {
+        let next = state.guard_position.step_forward();
+        if let Ok((col, row)) = next.as_usize_pair() {
+            if state.is_on_map(row, col) && state.is_free(row, col) {
+                if initial_pos.as_usize_pair() != next.as_usize_pair() {
+                    candidate_positions.push(state.guard_position);
+                }
+                // Test for obstacle at row-col
+            }
+        }
+        let running = state.tick_basic();
+        if !running {
+            break;
+        }
+    }
+    let total = Arc::new(AtomicUsize::new(0));
+    thread::scope(|scope| {
+        for start in candidate_positions {
+            let total = total.clone();
+            let mut state = initial_state.clone();
+            scope.spawn(move || {
+                if let Ok((col, row)) = start.step_forward().as_usize_pair() {
+                    state.set_cell(row, col, Obstructed);
+                    state.guard_position = initial_pos;
+                }
+                let mut collisions: HashSet<Position> = HashSet::new();
+                loop {
+                    let next = state.guard_position.step_forward();
+                    if let Ok((col, row)) = next.as_usize_pair() {
+                        if state.is_on_map(row, col) && !state.is_passable(row, col) {
+                            if !collisions.insert(state.guard_position) {
+                                // Loop detected
+                                total.fetch_add(1, Relaxed);
+                                return;
+                            }
+                        }
+                    }
+                    let running = state.tick_basic();
+                    if !running {
+                        // Ran out of simulation
+                        return
+                    }
+                }
+            });
+        }
+    });
+    let total = total.load(Relaxed);
+    return total;
+}
 
 pub fn solve_day6() {
     let demo_state = parse_file("demo.txt").expect("demo.txt failed to parse");
@@ -179,7 +258,12 @@ pub fn solve_day6() {
     assert_eq!(solve_simple(&demo_state), 41usize);
     println!("Demo 1 passed");
     println!("full solution is {}", solve_simple(&full_state));
-
+    
+    println!("{}", demo_state);
+    solve_advanced(&demo_state);
+    assert_eq!(solve_advanced(&demo_state), 6usize);
+    println!("Demo 2 passed");
+    println!("full solution is {}", solve_advanced(&full_state));
     // assert_eq!(solve_advanced(&demo.0, &mut demo.1.clone()), 123);
     // println!("Demo 2 passed");
     // println!("full solution is {}", solve_advanced(&full.0, &mut full.1.clone()));
