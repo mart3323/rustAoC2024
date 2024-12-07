@@ -6,7 +6,7 @@ use crate::utils::{read_input_files, InputFiles};
 use std::sync::atomic::{AtomicU32, AtomicUsize, Ordering};
 use std::sync::atomic::Ordering::Relaxed;
 use std::thread;
-use nom::Input;
+use nom::{AsChar, Input};
 
 #[derive(Debug, Eq, PartialEq)]
 enum SearchState {
@@ -69,11 +69,12 @@ pub fn solve_day4() {
     println!("Validation of part 1 passed, processing full file");
     let part1 = solve_simple(&files.full);
     println!("Solution part 1: {}", part1);
-    //
-    // assert_eq!(files.expected2, solve_advanced(demo2));
-    // println!("Validation of part 2 passed, processing full file");
-    // let solution = solve_advanced(files.full);
-    // println!("Solution part 2: {}", solution);
+
+    assert_eq!(solve_advanced(&files.demo), 9);
+    println!("Validation of part 2 passed, processing full file");
+    let part2 = solve_advanced(&files.full);
+    println!("Solution part 2: {}", part2);
+
 }
 
 fn solve_simple(input: &str) -> usize {
@@ -96,7 +97,7 @@ fn solve_simple(input: &str) -> usize {
         for col in 0..width {
             let top_to_bottom = input.chars().skip(col).step_by(width);
             scope.spawn(|| process_chars(top_to_bottom, &found));
-            
+
             let top_to_right = input.chars().skip(col).step_by(width + 1).take(width - col);
             let top_to_left = input.chars().skip(col).step_by(width - 1).take(col + 1);
             scope.spawn(|| process_chars(top_to_left, &found));
@@ -104,4 +105,35 @@ fn solve_simple(input: &str) -> usize {
         }
     });
     return found.load(Relaxed);
+}
+fn solve_advanced(input: &str) -> usize {
+    let width = input.lines().next().unwrap().len();
+    let height = input.lines().count(); // Blank line at the end;
+    let input = input.replace("\r", "").replace("\n", "");
+
+    let char_at = |row: usize, col: usize| {
+        input.as_bytes().get(row * width + col).unwrap().as_char()
+    };
+    let mut found = 0;
+    for row in 1..height-1 {
+        for col in 1..width-1 {
+            let c = char_at(row, col);
+            if c != 'A' {
+                continue;
+            }
+            let (a,b,c,d) = (char_at(row-1, col-1),
+                             char_at(row-1, col+1),
+                             char_at(row+1, col+1),
+                             char_at(row+1, col-1));
+            const M: char = 'M';
+            const S: char = 'S';
+            match (a,b,c,d) {
+                (M,M,S,S) | (M,S,S,M) | (S,S,M,M) | (S,M,M,S) => {
+                    found += 1;
+                }
+                _ => {}
+            }
+        }
+    }
+    return found;
 }
