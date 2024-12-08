@@ -141,6 +141,28 @@ fn parse_file(fname: &str) -> Result<Map2D<Cell>, ()> {
 type AntennaMap = Map2D<Cell>;
 type AntinodesMap = Map2D<usize>;
 
+fn print_numeric(map: &AntinodesMap) {
+    for y in 0..map.height {
+        for x in 0..map.width {
+            let value = map.map[x + map.width * y];
+            print!("{}", match value {
+                0 => '.',
+                1 => '1',
+                2 => '2',
+                3 => '3',
+                4 => '4',
+                5 => '5',
+                6 => '6',
+                7 => '7',
+                8 => '8',
+                9 => '9',
+                _ => '#',
+            });
+        }
+        println!();
+    }
+}
+
 fn solve_simple(initial_state: &AntennaMap) -> usize {
     let mut antenna_locations_by_frequency: HashMap<Frequency, Vec<Pos>> = HashMap::new();
     // Find and group up antennas by frequency
@@ -177,7 +199,41 @@ fn solve_simple(initial_state: &AntennaMap) -> usize {
     let unique_antinode_locations = antinodes_map.enumerate().map(|(p,v)| *v)
         .filter(|v| v > &0usize)
         .count();
+    
+    assert_eq!(antinodes_map.map.len(), initial_state.width * initial_state.height);
 
+    for y in 0..initial_state.height {
+        for x in 0..initial_state.width {
+            let pos = Pos { col: x as isize, row: y as isize };
+            let cell = initial_state.get_cell(&pos).unwrap();
+            let power = *antinodes_map.get_cell(&pos).unwrap();
+            const gray: &str = "\x1b[90m";
+            const green: &str = "\x1b[92m";
+            const yellow: &str = "\x1b[93m";
+            const red: &str = "\x1b[91m";
+            const purple: &str = "\x1b[95m";
+            const reset: &str = "\x1b[0m";
+            match (cell, power) {
+                (Cell{antenna: None}, 0) => print!("{}░{} ", gray, reset),
+                (Cell{antenna: None}, 1) => print!("{}░{} ", green, reset),
+                (Cell{antenna: None}, 2) => print!("{}░{} ", yellow, reset),
+                (Cell{antenna: None}, 3) => print!("{}░{} ", red, reset),
+                (Cell{antenna: None}, _) => print!("{}░{} ", red, reset),
+
+                (Cell{antenna: Some(freq)}, 0) => print!("{freq} "),
+                (Cell{antenna: Some(freq)}, 1) => print!("{}{freq}{} ", green, reset),
+                (Cell{antenna: Some(freq)}, 2) => print!("{}{freq}{} ", yellow, reset),
+                (Cell{antenna: Some(freq)}, 3) => print!("{}{freq}{} ", red, reset),
+                (Cell{antenna: Some(freq)}, _) => print!("{}{freq}{} ", purple, reset),
+
+            }
+        }
+        print!("\n")
+    }
+    // println!("Antennas");
+    // println!("{}", initial_state);
+    // println!("Antinodes");
+    // print_numeric(&antinodes_map);
     unique_antinode_locations
 }
 fn solve_advanced(initial_state: &AntennaMap) -> usize {
