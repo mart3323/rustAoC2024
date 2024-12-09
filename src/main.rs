@@ -7,6 +7,7 @@ mod day6;
 mod day7;
 mod day8;
 mod utils;
+mod day9;
 
 use std::ops::Deref;
 use std::sync::Arc;
@@ -23,6 +24,7 @@ use crate::day5::solve_day5;
 use crate::day6::solve_day6;
 use crate::day7::solve_day7;
 use crate::day8::solve_day8;
+use crate::day9::solve_day9;
 
 fn benchmark(function: fn(), name: &str) -> usize {
     let stop = channel();
@@ -55,10 +57,12 @@ fn main() {
     // solve_day5();
     // solve_day6();
     // solve_day7();
-    solve_day8();
+    // solve_day8();
+    solve_day9();
 }
 
 fn bench() {
+    let time9 = benchmark(solve_day9, "day7");
     let time8 = benchmark(solve_day8, "day7");
     let time7 = benchmark(solve_day7, "day7");
     let time6 = benchmark(solve_day6, "day6");
@@ -68,6 +72,7 @@ fn bench() {
     let time2 = benchmark(solve_day2, "day2");
     let time0 = benchmark(solve_day0, "day0");
 
+    println!("time9: {}", time9);
     println!("time8: {}", time8);
     println!("time7: {}", time7);
     println!("time6: {}", time6);
