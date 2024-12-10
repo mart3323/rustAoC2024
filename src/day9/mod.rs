@@ -90,7 +90,6 @@ impl DiskMap {
         return checksum;
     }
 }
-// region input
 
 fn compress_simple(input: &DiskMap) -> DiskMap {
     let mut input = VecDeque::from(input.regions.clone());
@@ -137,10 +136,54 @@ fn compress_simple(input: &DiskMap) -> DiskMap {
             .collect(),
     };
 }
-fn solve_advanced(input: &DiskMap) -> usize {
-    todo!()
+fn fmt_diskregions(d: &Vec<DiskRegion>) -> String {
+    d.iter().map(|r| match r {
+        DiskRegion::Free(FreeRegion{len}) => format!("{}", "_".repeat(*len)),
+        DiskRegion::Used(UsedRegion{len, pid}) => format!("{}", (pid.to_string().repeat(*len)))
+    }).collect()
 }
-// endregion
+fn fmt_vecdeque(d: &VecDeque<DiskRegion>) -> String {
+    d.iter().map(|r| match r {
+        DiskRegion::Free(FreeRegion{len}) => format!("{}", "_".repeat(*len)),
+        DiskRegion::Used(UsedRegion{len, pid}) => format!("{}", (pid.to_string().repeat(*len)))
+    }).collect()
+}
+fn compress_advanced(input: &DiskMap) -> DiskMap {
+    let mut input = VecDeque::from(input.regions.clone());
+    let mut output: Vec<DiskRegion> = Vec::new();
+    while let Some(ref front) = input.pop_front() {
+        match front {
+            DiskRegion::Used(ref used) => {
+                output.push(front.clone());
+            }
+            DiskRegion::Free(ref free) => {
+                let index_to_move = input.iter().enumerate().rfind(|(index, item)| {
+                    if let DiskRegion::Used(used) = item {
+                        if used.len <= free.len {
+                            println!("Can move {:?} into space of size {}", item, free.len);
+                            return true
+                        }
+                    }
+                    return false;
+                });
+                if let Some((index, DiskRegion::Used(used))) = index_to_move {
+                    output.push(DiskRegion::Used(used.clone()));
+                    let remaining = free.len - used.len;
+                    input.remove(index);
+                    if remaining > 0 {
+                        input.push_front(DiskRegion::Free(FreeRegion{len: remaining }))
+                    }
+                } else {
+                    output.push(front.clone())
+                }
+            }
+        }
+        println!("{}^{}", fmt_diskregions(&output), fmt_vecdeque(&input))
+    };
+    return DiskMap {
+        regions: output
+    };
+}
 
 #[test]
 fn demo1() {
@@ -150,12 +193,22 @@ fn demo1() {
     assert_eq!(compacted.checksum(), 1928usize);
 }
 
+#[test]
+fn demo2() {
+    let demo_txt = read_input_file("day9", "demo.txt");
+    let demo_input = DiskMap::from_compressed_string(&demo_txt);
+    let compacted = compress_advanced(&demo_input);
+    println!("{:?}", compacted);
+    assert_eq!(compacted.checksum(), 2858usize);
+}
+
 pub fn solve_day9() {
     let full_txt = read_input_file("day9", "full.txt");
 
     let full_input = DiskMap::from_compressed_string(&full_txt);
     let compacted = compress_simple(&full_input);
+    let compacted2 = compress_advanced(&full_input);
 
     println!("full solution 1 is {}", compacted.checksum());
-    println!("full solution 2 is {}", solve_advanced(&full_input));
+    println!("full solution 2 is {}", compacted2.checksum());
 }
