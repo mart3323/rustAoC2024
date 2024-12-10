@@ -1,12 +1,9 @@
-use std::iter::Skip;
-use std::ops::AddAssign;
-use std::str::Chars;
-use std::sync::Arc;
-use crate::utils::{read_input_files, InputFiles};
-use std::sync::atomic::{AtomicU32, AtomicUsize, Ordering};
+use crate::utils::read_input_file;
+use nom::AsChar;
 use std::sync::atomic::Ordering::Relaxed;
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::Arc;
 use std::thread;
-use nom::{AsChar, Input};
 
 #[derive(Debug, Eq, PartialEq)]
 enum SearchState {
@@ -61,20 +58,6 @@ fn process_chars<T>(chars: T, total: &Arc<AtomicUsize>)
             total.fetch_add(1, Ordering::Relaxed);
         }
     };
-}
-pub fn solve_day4() {
-    let files = read_input_files("day4");
-
-    assert_eq!(solve_simple(&files.demo), 18);
-    println!("Validation of part 1 passed, processing full file");
-    let part1 = solve_simple(&files.full);
-    println!("Solution part 1: {}", part1);
-
-    assert_eq!(solve_advanced(&files.demo), 9);
-    println!("Validation of part 2 passed, processing full file");
-    let part2 = solve_advanced(&files.full);
-    println!("Solution part 2: {}", part2);
-
 }
 
 fn solve_simple(input: &str) -> usize {
@@ -136,4 +119,26 @@ fn solve_advanced(input: &str) -> usize {
         }
     }
     return found;
+}
+
+#[test]
+fn test_solve() {
+    let demo = read_input_file("day4", "demo.txt");
+    let solution = solve_simple(&demo);
+    assert_eq!(solution, 18);
+}
+
+#[test]
+fn test_solve_advanced() {
+    let demo = read_input_file("day4", "demo2.txt");
+    let solution = solve_advanced(&demo);
+    assert_eq!(solution, 9);
+}
+pub fn part1() -> usize {
+    let full = read_input_file("day4", "full.txt");
+    solve_simple(&full) 
+}
+pub fn part2() -> usize {
+    let full = read_input_file("day4", "full.txt");
+    solve_advanced(&full) 
 }

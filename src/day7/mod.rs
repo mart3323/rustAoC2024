@@ -34,7 +34,7 @@ impl Display for Equation {
     }
 }
 
-fn solve(input: &Input, operators: &Vec<fn(a: &usize, b: &usize) -> usize>) -> usize {
+fn solve(input: &Input, operators: &[Op]) -> usize {
     let mut total = 0;
     for line in input {
         let mut potential_values = HashSet::from([0]);
@@ -81,29 +81,35 @@ fn parse_input(data: &str) -> Result<Vec<EquationLine>, ()> {
 }
 // endregion
 
-pub fn solve_day7() {
 
-    let demo_txt = read_input_file("day7", "demo.txt");
-    let full_txt = read_input_file("day7", "full.txt");
-    let input_demo = parse_input(&demo_txt).expect("File should parse correctly");
-    let input_full = parse_input(&full_txt).expect("File should parse correctly");
+type Op = fn(a: &usize, b: &usize) -> usize;
+const OP_ADD: Op = |a:&usize, b: &usize| a+b;
+const OP_MUL: Op = |a:&usize, b: &usize| a*b;
+const OP_CON: Op = |a:&usize, b: &usize| (a.to_string() + &*b.to_string()).parse::<usize>().unwrap();
 
-    let op_add = |a:&usize, b: &usize| a+b;
-    let op_mul = |a:&usize, b: &usize| a*b;
-    let op_con = |a:&usize, b: &usize| (a.to_string() + &*b.to_string()).parse::<usize>().unwrap();
+const SIMPLE_OP: [Op; 2] = [OP_ADD, OP_MUL];
+const ADV_OP: [Op; 3] = [OP_ADD, OP_MUL, OP_CON];
 
-    let simple_op = vec!(op_add, op_mul);
-    let adv_op = vec!(op_add, op_mul, op_con);
-    assert_eq!(solve(&input_demo, &simple_op), 3749usize);
-    println!("Demo 1 passed");
-    println!("full solution is {}", solve(&input_full, &simple_op));
-    println!("Demo 2 passed");
-    assert_eq!(solve(&input_demo, &adv_op), 11387usize);
-    println!("full solution is {}", solve(&input_full, &adv_op));
-    
-    // println!("{}", demo_state);
-    // solve_advanced(&demo_state);
-    // assert_eq!(solve_advanced(&demo_state), 6usize);
-    // println!("Demo 2 passed");
-    // println!("full solution is {}", solve_advanced(&full_state));
+#[test]
+fn test_solve_simple() {
+    let demo = read_input_file("day7", "demo.txt");
+    let state = parse_input(&demo).expect("Demo file should parse");
+    assert_eq!(solve(&state, &SIMPLE_OP), 3749);
+}
+#[test]
+fn test_solve_advanced() {
+    let demo = read_input_file("day7", "demo.txt");
+    let state = parse_input(&demo).expect("Demo file should parse");
+    assert_eq!(solve(&state, &ADV_OP), 11387);
+}
+
+pub fn part1() -> usize {
+    let full = read_input_file("day7", "full.txt");
+    let state = parse_input(&full).expect("Demo file should parse");
+    solve(&state, &SIMPLE_OP)
+}
+pub fn part2() -> usize {
+    let full = read_input_file("day7", "full.txt");
+    let state = parse_input(&full).expect("Demo file should parse");
+    solve(&state, &ADV_OP)
 }

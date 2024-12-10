@@ -1,15 +1,15 @@
+use crate::day6::Cell::Obstructed;
+use crate::utils::read_input_file;
 use nom::Parser;
 use std::cmp::PartialEq;
-use std::collections::{HashSet, VecDeque};
+use std::collections::HashSet;
 use std::fmt::{Debug, Display, Formatter};
 use std::num::TryFromIntError;
 use std::ops::Index;
-use std::sync::Arc;
 use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering::Relaxed;
+use std::sync::Arc;
 use std::thread;
-use crate::day6::Cell::Obstructed;
-use crate::utils::read_input_file;
 
 #[derive(Eq, PartialEq, Clone, Copy)]
 enum Cell {
@@ -251,21 +251,23 @@ fn solve_advanced(initial_state: &State) -> usize {
     return total;
 }
 
-pub fn solve_day6() {
-    let demo_state = parse_file("demo.txt").expect("demo.txt failed to parse");
-    let full_state = parse_file("full.txt").expect("full.txt failed to parse");
 
-    assert_eq!(solve_simple(&demo_state), 41usize);
-    println!("Demo 1 passed");
-    println!("full solution is {}", solve_simple(&full_state));
-    
-    println!("{}", demo_state);
-    solve_advanced(&demo_state);
-    assert_eq!(solve_advanced(&demo_state), 6usize);
-    println!("Demo 2 passed");
-    println!("full solution is {}", solve_advanced(&full_state));
-    // assert_eq!(solve_advanced(&demo.0, &mut demo.1.clone()), 123);
-    // println!("Demo 2 passed");
-    // println!("full solution is {}", solve_advanced(&full.0, &mut full.1.clone()));
-    
+#[test]
+fn test_solve_simple() {
+    let state = parse_file("demo.txt").expect("Demo file should parse");
+    assert_eq!(solve_simple(&state), 41);
+}
+#[test]
+fn test_solve_advanced() {
+    let state = parse_file("demo.txt").expect("Demo file should parse");
+    assert_eq!(solve_advanced(&state), 6);
+}
+
+pub fn part1() -> usize {
+    let state = parse_file("full.txt").expect("Demo file should parse");
+    solve_simple(&state)
+}
+pub fn part2() -> usize {
+    let state = parse_file("full.txt").expect("Demo file should parse");
+    solve_advanced(&state)
 }

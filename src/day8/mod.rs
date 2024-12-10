@@ -202,34 +202,34 @@ fn solve_simple(initial_state: &AntennaMap) -> usize {
     
     assert_eq!(antinodes_map.map.len(), initial_state.width * initial_state.height);
 
-    for y in 0..initial_state.height {
-        for x in 0..initial_state.width {
-            let pos = Pos { col: x as isize, row: y as isize };
-            let cell = initial_state.get_cell(&pos).unwrap();
-            let power = *antinodes_map.get_cell(&pos).unwrap();
-            const gray: &str = "\x1b[90m";
-            const green: &str = "\x1b[92m";
-            const yellow: &str = "\x1b[93m";
-            const red: &str = "\x1b[91m";
-            const purple: &str = "\x1b[95m";
-            const reset: &str = "\x1b[0m";
-            match (cell, power) {
-                (Cell{antenna: None}, 0) => print!("{}░{} ", gray, reset),
-                (Cell{antenna: None}, 1) => print!("{}░{} ", green, reset),
-                (Cell{antenna: None}, 2) => print!("{}░{} ", yellow, reset),
-                (Cell{antenna: None}, 3) => print!("{}░{} ", red, reset),
-                (Cell{antenna: None}, _) => print!("{}░{} ", red, reset),
-
-                (Cell{antenna: Some(freq)}, 0) => print!("{freq} "),
-                (Cell{antenna: Some(freq)}, 1) => print!("{}{freq}{} ", green, reset),
-                (Cell{antenna: Some(freq)}, 2) => print!("{}{freq}{} ", yellow, reset),
-                (Cell{antenna: Some(freq)}, 3) => print!("{}{freq}{} ", red, reset),
-                (Cell{antenna: Some(freq)}, _) => print!("{}{freq}{} ", purple, reset),
-
-            }
-        }
-        print!("\n")
-    }
+    // for y in 0..initial_state.height {
+    //     for x in 0..initial_state.width {
+    //         let pos = Pos { col: x as isize, row: y as isize };
+    //         let cell = initial_state.get_cell(&pos).unwrap();
+    //         let power = *antinodes_map.get_cell(&pos).unwrap();
+    //         const gray: &str = "\x1b[90m";
+    //         const green: &str = "\x1b[92m";
+    //         const yellow: &str = "\x1b[93m";
+    //         const red: &str = "\x1b[91m";
+    //         const purple: &str = "\x1b[95m";
+    //         const reset: &str = "\x1b[0m";
+    //         match (cell, power) {
+    //             (Cell{antenna: None}, 0) => print!("{}░{} ", gray, reset),
+    //             (Cell{antenna: None}, 1) => print!("{}░{} ", green, reset),
+    //             (Cell{antenna: None}, 2) => print!("{}░{} ", yellow, reset),
+    //             (Cell{antenna: None}, 3) => print!("{}░{} ", red, reset),
+    //             (Cell{antenna: None}, _) => print!("{}░{} ", red, reset),
+    // 
+    //             (Cell{antenna: Some(freq)}, 0) => print!("{freq} "),
+    //             (Cell{antenna: Some(freq)}, 1) => print!("{}{freq}{} ", green, reset),
+    //             (Cell{antenna: Some(freq)}, 2) => print!("{}{freq}{} ", yellow, reset),
+    //             (Cell{antenna: Some(freq)}, 3) => print!("{}{freq}{} ", red, reset),
+    //             (Cell{antenna: Some(freq)}, _) => print!("{}{freq}{} ", purple, reset),
+    // 
+    //         }
+    //     }
+    //     print!("\n")
+    // }
     // println!("Antennas");
     // println!("{}", initial_state);
     // println!("Antinodes");
@@ -240,23 +240,25 @@ fn solve_advanced(initial_state: &AntennaMap) -> usize {
     0
 }
 
-// Part 1: 366 too high
-pub fn solve_day8() {
+#[test]
+fn test_solve_simple() {
     let demo_input = parse_file("demo.txt").expect("demo.txt failed to parse");
+    let answer = solve_simple(&demo_input);
+    assert_eq!(answer, 14);
+    
     let full_input = parse_file("full.txt").expect("full.txt failed to parse");
-
-    assert_eq!(solve_simple(&demo_input), 14usize);
-    println!("Demo 1 passed");
-    let full_solution_1 = solve_simple(&full_input);
-    assert!(full_solution_1 < 366); // Failed submission 1
-    println!("full solution is {}", full_solution_1);
-    
-    solve_advanced(&demo_input);
-    assert_eq!(solve_advanced(&demo_input), 0usize);
-    println!("Demo 2 passed");
-    println!("full solution is {}", solve_advanced(&full_input));
-    // assert_eq!(solve_advanced(&demo.0, &mut demo.1.clone()), 123);
-    // println!("Demo 2 passed");
-    // println!("full solution is {}", solve_advanced(&full.0, &mut full.1.clone()));
-    
+    let answer = solve_simple(&full_input);
+    assert!(answer < 366); // Failed submission 1
+}
+#[test]
+fn test_solve_advanced() {
+    todo!()
+}
+pub fn part1() -> usize {
+    let full_input = parse_file("full.txt").expect("full.txt failed to parse");
+    solve_simple(&full_input)
+}
+pub fn part2() -> usize {
+    let full_input = parse_file("full.txt").expect("full.txt failed to parse");
+    solve_advanced(&full_input)
 }

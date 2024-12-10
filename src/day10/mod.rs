@@ -76,7 +76,7 @@ fn rate_trailheads(map: &Vec<Vec<char>>) -> usize {
     return score;
 }
 #[test]
-fn demo1() {
+fn test_score_trailheads() {
     let demo = read_input_file(DAY, "demo.txt");
     let lines: Vec<Vec<char>> = demo.split_whitespace().map(|line| line.chars().collect()).collect();
 
@@ -85,7 +85,7 @@ fn demo1() {
 }
 
 #[test]
-fn demo2() {
+fn test_rate_trailheads() {
     let demo = read_input_file(DAY, "demo.txt");
     let lines: Vec<Vec<char>> = demo.split_whitespace().map(|line| line.chars().collect()).collect();
 
@@ -93,11 +93,15 @@ fn demo2() {
     assert_eq!(score, 81usize)
 }
 
-pub fn solve_day10() {
+pub fn part1() -> usize {
     let full = read_input_file(DAY, "full.txt");
     let lines: Vec<Vec<char>> = full.split_whitespace().map(|line| line.chars().collect()).collect();
     let score = score_trailheads(&lines);
-    println!("Part1: {}", score);
+    return score;
+}
+pub fn part2() -> usize {
+    let full = read_input_file(DAY, "full.txt");
+    let lines: Vec<Vec<char>> = full.split_whitespace().map(|line| line.chars().collect()).collect();
     let rating = rate_trailheads(&lines);
-    println!("Part2: {}", rating);
+    return rating;
 }

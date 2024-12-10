@@ -1,32 +1,16 @@
-use crate::utils::{read_input_file, read_input_files};
+use crate::utils::read_input_file;
 use nom;
-use nom::{Parser};
-// needed to call map_res on parsers for some reason
-
-pub fn solve_day3() {
-    let files = read_input_files("day3");
-    let demo2 = read_input_file("day3", "demo2.txt");
-
-    assert_eq!(files.expected, solve_simple(files.demo.clone()));
-    println!("Validation of part 1 passed, processing full file");
-    let solution = solve_simple(files.full.clone());
-    println!("Solution part 1: {}", solution);
-
-    assert_eq!(files.expected2, solve_advanced(demo2));
-    println!("Validation of part 2 passed, processing full file");
-    let solution = solve_advanced(files.full);
-    println!("Solution part 2: {}", solution);
-}
+use nom::Parser;
 
 // region parsers
 #[derive(Debug, Clone)]
 enum Instruction {
-    Mul(u64, u64),
+    Mul(usize, usize),
     Skip,
     Do,
     Dont,
 }
-fn parse_int(input: &str) -> nom::IResult<&str, u64> {
+fn parse_int(input: &str) -> nom::IResult<&str, usize> {
     use nom::character::complete::digit1;
     digit1.map_res(str::parse).parse(input)
 }
@@ -49,7 +33,7 @@ fn parse_instruction(input: &str) -> nom::IResult<&str, Instruction> {
 }
 // endregion
 
-fn solve_simple(input: String) -> String {
+fn solve_simple(input: String) -> usize {
     use nom::multi::fold_many1;
 
     let mut sum = fold_many1(
@@ -60,16 +44,16 @@ fn solve_simple(input: String) -> String {
             _ => sum,
         },
     );
-    sum.parse(input.as_str()).unwrap().1.to_string()
+    sum.parse(input.as_str()).unwrap().1
 }
 
-fn solve_advanced(input: String) -> String {
+fn solve_advanced(input: String) -> usize {
     use nom::multi::fold_many1;
     use Instruction::*;
 
-    struct State(bool, u64);
+    struct State(bool, usize);
     impl State {
-        fn value(self) -> u64 {
+        fn value(self) -> usize {
             self.1
         }
     }
@@ -90,5 +74,25 @@ fn solve_advanced(input: String) -> String {
             Dont => State(false, state.1),
         },
     );
-    sum.parse(input.as_str()).unwrap().1.value().to_string()
+    sum.parse(input.as_str()).unwrap().1.value()
+}
+
+#[test]
+fn test_solve() {
+    let demo = read_input_file("day3", "demo.txt");
+    assert_eq!(solve_simple(demo), 161);
+}
+#[test]
+fn test_solve_advanced() {
+    let demo = read_input_file("day3", "demo2.txt");
+    assert_eq!(solve_advanced(demo), 48);
+}
+
+pub fn part1() -> usize {
+    let full = read_input_file("day3", "full.txt");
+    solve_simple(full)
+}
+pub fn part2() -> usize {
+    let full = read_input_file("day3", "full.txt");
+    solve_advanced(full)
 }

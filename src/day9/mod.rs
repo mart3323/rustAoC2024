@@ -160,7 +160,6 @@ fn compress_advanced(input: &DiskMap) -> DiskMap {
                 let index_to_move = input.iter().enumerate().rfind(|(index, item)| {
                     if let DiskRegion::Used(used) = item {
                         if used.len <= free.len {
-                            println!("Can move {:?} into space of size {}", item, free.len);
                             return true
                         }
                     }
@@ -178,7 +177,6 @@ fn compress_advanced(input: &DiskMap) -> DiskMap {
                 }
             }
         }
-        println!("{}^{}", fmt_diskregions(&output), fmt_vecdeque(&input))
     };
     return DiskMap {
         regions: output
@@ -186,7 +184,7 @@ fn compress_advanced(input: &DiskMap) -> DiskMap {
 }
 
 #[test]
-fn demo1() {
+fn test_compress_simple() {
     let demo_txt = read_input_file("day9", "demo.txt");
     let demo_input = DiskMap::from_compressed_string(&demo_txt);
     let compacted = compress_simple(&demo_input);
@@ -194,21 +192,22 @@ fn demo1() {
 }
 
 #[test]
-fn demo2() {
+fn test_compress_advanced() {
     let demo_txt = read_input_file("day9", "demo.txt");
     let demo_input = DiskMap::from_compressed_string(&demo_txt);
     let compacted = compress_advanced(&demo_input);
-    println!("{:?}", compacted);
     assert_eq!(compacted.checksum(), 2858usize);
 }
 
-pub fn solve_day9() {
+pub fn part1() -> usize {
     let full_txt = read_input_file("day9", "full.txt");
-
     let full_input = DiskMap::from_compressed_string(&full_txt);
     let compacted = compress_simple(&full_input);
-    let compacted2 = compress_advanced(&full_input);
-
-    println!("full solution 1 is {}", compacted.checksum());
-    println!("full solution 2 is {}", compacted2.checksum());
+    compacted.checksum()
+}
+pub fn part2() -> usize {
+    let full_txt = read_input_file("day9", "full.txt");
+    let full_input = DiskMap::from_compressed_string(&full_txt);
+    let compacted = compress_advanced(&full_input);
+    compacted.checksum()
 }

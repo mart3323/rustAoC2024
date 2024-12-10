@@ -3,6 +3,14 @@ name = "AoC2024"
 version = "0.1.0"
 edition = "2021"
 
+[dev-dependencies]
+criterion = "0.5.1"
+
 [dependencies]
 nom = "8.0.0-alpha2"
 log = "0.4.22"
+
+[[bench]]
+name = "my_benchmark"
+harness = false
+path="benches/my_benchmark.rs"

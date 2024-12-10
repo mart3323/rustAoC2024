@@ -1,4 +1,4 @@
-use crate::utils::read_input_files;
+use crate::utils::{read_input_file};
 use nom;
 use nom::{IResult, Parser};
 use std::str::FromStr;
@@ -18,28 +18,6 @@ fn parse_file(input: &str) -> IResult<&str, Input> {
     nom::multi::separated_list1(nom::character::complete::line_ending, parse_line).parse(input)
 }
 // endregion
-pub fn solve_day2() {
-    let inputs = read_input_files("day2");
-    let demo = parse_file(&inputs.demo).unwrap().1;
-    let full = parse_file(&inputs.full).unwrap().1;
-
-    {
-        let actual = solve(&demo);
-        let expected = inputs.expected;
-        assert_eq!(actual, expected);
-        let solution = solve(&full);
-        println!("Part1: {}", solution);
-    }
-    {
-        let actual = solve2(&demo);
-        let expected = inputs.expected2;
-        assert_eq!(actual, expected);
-        let solution = solve2_naive(&full);
-        let solution2 = solve2(&full);
-        assert_eq!(solution, solution2);
-        println!("Part2: {}", solution);
-    }
-}
 
 fn report_is_safe(report: &Report) -> bool {
     if report.is_empty() {
@@ -152,24 +130,52 @@ fn report_is_safeish_dumb_version(report: &Report) -> bool {
     return false;
 }
 
-fn solve(reports: &Input) -> String {
+fn solve(reports: &Input) -> usize {
     reports
         .iter()
         .filter(|r| report_is_safe(r))
         .count()
-        .to_string()
 }
-fn solve2_naive(reports: &Input) -> String {
+fn solve2_naive(reports: &Input) -> usize {
     reports
         .iter()
         .filter(|r| report_is_safeish_dumb_version(r))
         .count()
-        .to_string()
 }
-fn solve2(reports: &Input) -> String {
+fn solve2(reports: &Input) -> usize {
     reports
         .iter()
         .filter(|r| report_is_safeish(r))
         .count()
-        .to_string()
+}
+
+#[test]
+fn test_part1() {
+    let demo = read_input_file("day2", "demo.txt");
+    let input = parse_file(&demo).expect("Demo input should parse").1;
+    assert_eq!(solve(&input), 2)
+}
+#[test]
+fn test_part2_naive() {
+    let demo = read_input_file("day2", "demo.txt");
+    let input = parse_file(&demo).expect("Demo input should parse").1;
+    assert_eq!(solve2_naive(&input), 4)
+}
+#[test]
+fn test_part2() {
+    let demo = read_input_file("day2", "demo.txt");
+    let input = parse_file(&demo).expect("Demo input should parse").1;
+    assert_eq!(solve2(&input), 4)
+}
+pub fn part1() -> usize {
+    let full = read_input_file("day2", "full.txt");
+    let input = parse_file(&full).expect("Full input should parse").1;
+    let solution = solve(&input);
+    return solution;
+}
+pub fn part2() -> usize {
+    let full = read_input_file("day2", "full.txt");
+    let input = parse_file(&full).expect("Full input should parse").1;
+    let solution = solve2_naive(&input);
+    return solution;
 }

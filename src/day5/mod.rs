@@ -1,21 +1,21 @@
-use crate::utils::read_input_files;
-use nom::multi::{many1, separated_list1};
+use crate::utils::read_input_file;
+use nom::multi::separated_list1;
 use nom::Parser;
-use std::collections::{HashMap, HashSet, LinkedList, VecDeque};
+use std::collections::{HashMap, HashSet};
 
 // region input
-struct PairOrderingRules(HashMap<u32, HashSet<u32>>);
+struct PairOrderingRules(HashMap<usize, HashSet<usize>>);
 
 #[derive(Debug)]
 #[derive(Clone)]
-struct Update(Vec<u32>);
+struct Update(Vec<usize>);
 
-fn parse_int(input: &str) -> nom::IResult<&str, u32> {
+fn parse_int(input: &str) -> nom::IResult<&str, usize> {
     use nom::character::complete::digit1;
     digit1.map_res(str::parse)
         .parse(input)
 }
-fn parse_page_ordering_rule(input: &str) -> nom::IResult<&str, (u32, u32)> {
+fn parse_page_ordering_rule(input: &str) -> nom::IResult<&str, (usize, usize)> {
     use nom::bytes::complete::tag;
 
     (parse_int,tag("|"),parse_int)
@@ -54,7 +54,7 @@ fn parse_file(input: &str) -> nom::IResult<&str, (PairOrderingRules, Vec<Update>
 // endregion
 
 impl Update {
-    fn get_middle_page(&self) -> &u32 {
+    fn get_middle_page(&self) -> &usize {
         self.0.get(self.0.len() / 2)
             .expect("Expected vector of size N to have an item at index N/2")
     }
@@ -109,7 +109,7 @@ impl Update {
         };
     }
 }
-fn solve_simple(rules: &PairOrderingRules, updates: &Vec<Update>) -> u32 {
+fn solve_simple(rules: &PairOrderingRules, updates: &Vec<Update>) -> usize {
     let mut total = 0;
     for upd in updates {
         if upd.validate(rules) {
@@ -119,7 +119,7 @@ fn solve_simple(rules: &PairOrderingRules, updates: &Vec<Update>) -> u32 {
     }
     return total;
 }
-fn solve_advanced(rules: &PairOrderingRules, updates: &mut Vec<Update>) -> u32 {
+fn solve_advanced(rules: &PairOrderingRules, updates: &mut Vec<Update>) -> usize {
     let mut total = 0;
     for upd in updates {
         if !upd.validate(rules) {
@@ -130,18 +130,22 @@ fn solve_advanced(rules: &PairOrderingRules, updates: &mut Vec<Update>) -> u32 {
     return total;
 }
 
-pub fn solve_day5() {
-    let files = read_input_files("day5");
-    let demo = parse_file(&files.demo).expect("Demo file should parse").1;
-    let full = parse_file(&files.full).expect("Full file should parse").1;
-    let demo_expected: u32 = str::parse(&files.expected).expect("Solution should be a valid number");
+#[test]
+fn test_solve_simple() {
+    let (rules, updates) = parse_file(&read_input_file("day5", "demo.txt")).expect("Demo file should parse").1;
+    assert_eq!(solve_simple(&rules, &updates), 143);
+}
+#[test]
+fn test_solve_advanced() {
+    let (rules, updates) = parse_file(&read_input_file("day5", "demo.txt")).expect("Demo file should parse").1;
+    assert_eq!(solve_advanced(&rules, &mut updates.clone()), 123);
+}
 
-    assert_eq!(solve_simple(&demo.0, &demo.1), 143);
-    println!("Demo 1 passed");
-    println!("full solution is {}", solve_simple(&full.0, &full.1));
-
-    assert_eq!(solve_advanced(&demo.0, &mut demo.1.clone()), 123);
-    println!("Demo 2 passed");
-    println!("full solution is {}", solve_advanced(&full.0, &mut full.1.clone()));
-    
+pub fn part1() -> usize {
+    let (rules, updates) = parse_file(&read_input_file("day5", "full.txt")).expect("Full file should parse").1;
+    solve_simple(&rules, &updates)
+}
+pub fn part2() -> usize {
+    let (rules, updates) = parse_file(&read_input_file("day5", "full.txt")).expect("Full file should parse").1;
+    solve_advanced(&rules, &mut updates.clone())
 }
