@@ -1,3 +1,5 @@
+use AoC2024::day11;
+
 mod day0;
 mod day2;
 mod day3;
@@ -21,4 +23,6 @@ fn main() {
     // solve_day8();
     // solve_day9();
     // day10::solve_day10();
+    println!("part1: {}", day11::part1());
+    println!("part2: {}", day11::part2());
 }
