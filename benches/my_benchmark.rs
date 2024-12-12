@@ -1,5 +1,5 @@
 use criterion::{criterion_group, criterion_main, Criterion};
-use AoC2024::{day0, day10, day2, day3, day4, day5, day6, day7, day8, day9};
+use AoC2024::{day0, day10, day11, day2, day3, day4, day5, day6, day7, day8, day9};
 
 fn day0(c: &mut Criterion) {
     c.bench_function("day 0 part1", |b| b.iter(day0::part1));
@@ -44,5 +44,10 @@ fn day10(c: &mut Criterion) {
     c.bench_function("day 10 part2", |b| b.iter(day10::part2));
 }
 
-criterion_group!(benches, day0, day1, day2, day3, day4, day5, day6, day7, day8, day9, day10);
+fn day11(c: &mut Criterion) {
+    c.bench_function("day 11 part1", |b| b.iter(day11::part1));
+    c.bench_function("day 11 part2", |b| b.iter(day11::part2));
+}
+
+criterion_group!(benches, day0, day1, day2, day3, day4, day5, day6, day7, day8, day9, day10, day11);
 criterion_main!(benches);

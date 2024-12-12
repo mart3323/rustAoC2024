@@ -1,4 +1,3 @@
-
 pub mod day0;
 pub mod day2;
 pub mod day3;
@@ -11,3 +10,4 @@ pub mod day9;
 pub mod day10;
 pub mod day11;
 pub mod utils;
+pub mod day12;

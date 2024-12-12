@@ -61,7 +61,7 @@ fn solve_simple(stones: Stones, times: usize) -> usize {
 fn test_part1() {
     let demo = read_input_file(DAY, "demo.txt");
     let stones = parse_stones(&demo).expect("Input should parse").1;
-    
+
     let score = solve_simple(stones, 25);
     assert_eq!(score, 55312)
 }
