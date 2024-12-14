@@ -1,0 +1,52 @@
+I think this is solvable with unsigned ints
+
+Consider that we only need to figure out one axis, the other can be calculated trivially from it
+
+To find the correct nr of button 1 presses
+  Denote: x1, y1 are the motions awarded by button 1
+          x2, y2 are the motions awarded by button 2
+          t1, t2 are the target coordinates
+
+Observe that if we input the correct number of presses for button 1, 
+then the target must be exactly in the direction that button 2 moves towards.
+More specifically, the ratio between the distance on the x and y axis must be exactly
+the same as the ratio by which button 2 moves on those axis
+
+Example:
+  target: (14,12)
+  button1: (+3, +1)
+  button2: (+1, +4)
+
+  with 0 presses: (14,12) : ratio 7/6 ~ 1.16
+  with 1 press:   (11,11) : ratio   1 = 1.0
+  with 2 presses: (8, 10) : ratio 4/5 = 0.8
+  with 3 presses: (5, 9)  : ratio 5/9 ~ 0.55
+  with 4 presses: (2, 8)  : ratio 1/4 <----------------------
+
+  To line ourselves up for button 2, we need to be 4 times as
+  far from the goal on the y axis as we are on the X axis.
+  This happens with exactly 4 presses
+
+We can express this as a formula:
+  x2(yt-y1k) = y2(xt-x1k)
+
+Shuffling the terms around to calculate k (the number of button 1 presses) yields
+
+  (x1*y2 - x2*y1)k = y2*xt - yt*x2
+  k = (y2*xt - yt*x2) / (x1*y2 - x2*y1) 
+
+Why is this safe for unsigned ints?
+* Multiplications are always safe, since two positive numbers multiply to another positive
+    exception: Risk of overflow
+
+* Division is safe if the result is a whole number (guaranteed by problem statement)
+  and if the result is positive (guaranteed by problem statement)
+  
+* Subtractions are safe if the first operand is larger than the second. 
+  Because the final result must be positive, either both subtractions must give a negative result or neither
+  If both are negative, then we can flip the order of operands in both to make them both postitive.
+  Because we immediately divide the results, this does not affect the final answer
+  Simplification: In both cases, subtract the larger number from the smaller.
+
+
+  
