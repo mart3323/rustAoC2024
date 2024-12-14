@@ -78,12 +78,19 @@ fn safety_factor_after_n_seconds(input: &Input, seconds: u64, width: i128, heigh
         let start_x = robot.position.x as i128;
         let start_y = robot.position.y as i128;
         // multiplication is checked, modulus can only make the number smaller
-        let mod_dx = (robot.velocity.x as i128).checked_mul(seconds as i128).expect("Overflow for dx") % width;
-        let mod_dy = (robot.velocity.y as i128).checked_mul(seconds as i128).expect("Overflow for dy") % height;
-        // start position is small (within 0..103), widthh and height are 101,103, no chance of overflow for i128
-        let end_x = (start_x + mod_dx) % (width);
-        let end_y = (start_y + mod_dy) % (height);
-        
+        let mod_dx = ((robot.velocity.x as i128 % width)).checked_mul(seconds as i128).expect("Overflow for dx") % width;
+        let mod_dy = ((robot.velocity.y as i128 % height)).checked_mul(seconds as i128).expect("Overflow for dy") % height;
+        // start position is small (within 0..103), width and height are 101,103, no chance of overflow for i128
+        let mut end_x = (start_x + mod_dx) % (width);
+        let mut end_y = (start_y + mod_dy) % (height);
+
+        while end_x < 0 {
+            end_x += width;
+        }
+        while end_y < 0 {
+            end_y += height;
+        }
+        debug_assert!((end_x, end_y) == sim_iter(&robot, seconds, width as i64, height as i64));
         match (end_x.cmp(&(width/2)), end_y.cmp(&(height/2))) {
             (Greater, Greater) => {q1 += 1;},
             (Greater, Less) => {q2 += 1;},
@@ -95,6 +102,21 @@ fn safety_factor_after_n_seconds(input: &Input, seconds: u64, width: i128, heigh
         }
     }
     return q1 * q2 * q3 * q4;
+}
+#[cfg(debug_assertions)]
+fn sim_iter(robot: &Robot, seconds: u64, width: i64, height: i64) -> (i128, i128) {
+    let Vector2D{mut x,mut y} = robot.position;
+    for _ in 0..seconds {
+        x = (x + robot.velocity.x) % width;
+        y = (y + robot.velocity.y) % height;
+    }
+    while x < 0 {
+        x += width;
+    }
+    while y < 0 {
+        y += height;
+    }
+    return (x as i128, y as i128)
 }
 #[test]
 fn test_part1() {
