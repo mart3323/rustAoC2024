@@ -1,9 +1,13 @@
 use std::fmt::{Display, Formatter};
+use std::fs;
+use std::io::{stdin, Read};
+use image::{GrayImage, ImageBuffer, Rgb};
 use crate::utils::read_input_file;
 use nom::{Complete, IResult, Parser};
 
 const DAY: &str = "day14";
 
+#[derive(PartialEq)]
 struct Vector2D {
     x: i64,
     y: i64,
@@ -19,7 +23,7 @@ struct Robot {
 }
 impl Display for Robot {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Robot({}@{})", self.position, self.velocity)
+        write!(f, "Robot(p:{}, v:{})", self.position, self.velocity)
     }
 }
 type Input = Vec<Robot>;
@@ -90,7 +94,6 @@ fn safety_factor_after_n_seconds(input: &Input, seconds: u64, width: i128, heigh
         while end_y < 0 {
             end_y += height;
         }
-        debug_assert!((end_x, end_y) == sim_iter(&robot, seconds, width as i64, height as i64));
         match (end_x.cmp(&(width/2)), end_y.cmp(&(height/2))) {
             (Greater, Greater) => {q1 += 1;},
             (Greater, Less) => {q2 += 1;},
@@ -103,7 +106,23 @@ fn safety_factor_after_n_seconds(input: &Input, seconds: u64, width: i128, heigh
     }
     return q1 * q2 * q3 * q4;
 }
-#[cfg(debug_assertions)]
+impl Robot {
+    fn run_n_seconds(&mut self, seconds: usize, width: usize, height: usize) {
+        let Vector2D{mut x,mut y} = self.position;
+        let Vector2D{x: dx,y: dy} = self.velocity;
+        for _ in 0..seconds {
+            x = (x + dx) % (width as i64);
+            y = (y + dy) % (height as i64);
+        }
+        while x < 0 {
+            x += width as i64;
+        }
+        while y < 0 {
+            y += height as i64;
+        }
+        self.position = Vector2D { x, y };
+    }
+}
 fn sim_iter(robot: &Robot, seconds: u64, width: i64, height: i64) -> (i128, i128) {
     let Vector2D{mut x,mut y} = robot.position;
     for _ in 0..seconds {
@@ -144,9 +163,26 @@ fn test_part1_wrong_submissions() {
             assert!(110149200 < found);
         }
     }
-    
 }
+#[test]
+fn test_part2_iter_method_works() {
+    let full = read_input_file(DAY, "full.txt");
+    let robots = parse_input(&full).unwrap();
+    let expected = safety_factor_after_n_seconds(&robots, 100, 101, 103);
 
+    println!("{}", robots.first().unwrap());
+    let mut robots = robots;
+    for x in (0..10) {
+        robots.iter_mut().for_each(|robot| robot.run_n_seconds(1, 101, 103))
+    }
+    println!("{}", robots.first().unwrap());
+    let actual = safety_factor_after_n_seconds(&robots, 100-10, 101, 103);
+    assert_eq!(expected, actual);
+    robots.iter_mut().for_each(|robot| robot.run_n_seconds(10, 101, 103));
+    robots.iter_mut().for_each(|robot| robot.run_n_seconds(10, 101, 103));
+    let actual = safety_factor_after_n_seconds(&robots, 100-10-20, 101, 103);
+    assert_eq!(expected, actual);
+}
 
 pub fn part1() -> u128 {
     let full = read_input_file(DAY, "full.txt");
@@ -159,5 +195,46 @@ pub fn part1() -> u128 {
     }
 }
 pub fn part2() -> u128 {
-    todo!()
+    const WIDTH: usize = 101;
+    const HEIGHT: usize = 103;
+    let full = read_input_file(DAY, "full.txt");
+    let robots = parse_input(&full);
+    match robots {
+        Err(e) => panic!("Failed to parse robots: {}", e),
+        Ok(mut robots) => {
+            for i in 1..10000 {
+                robots.iter_mut().for_each(|r| r.run_n_seconds(1, 101, 103));
+                println!("{} seconds have elapsed:", i);
+
+                // a default (black) image containing Rgb values
+                let mut image = GrayImage::new(WIDTH as u32, HEIGHT as u32);
+
+                for r in &robots {
+                    let pixel = image.get_pixel_mut(r.position.x as u32, r.position.y as u32);
+                    pixel.0[0] = 255;
+                }
+                // write it out to a file
+                fs::create_dir("src/day14/images"); // if it fails, assumje dir already exists
+                image.save(format!("src/day14/images/{}.png", i)).unwrap();
+
+            }
+            0
+        }
+    }
 }
+
+
+
+fn display_map(robots: &Input, width: i64, height: i64) {
+    for y in 0..height {
+        for x in 0..width {
+            match robots.iter().filter(|r| r.position == Vector2D { x, y }).count() {
+                0 => print!("."),
+                n if 0 <= n && n <= 9 => print!("{}", n),
+                _ => print!("#")
+            }
+        }
+        println!();
+    }
+}
+

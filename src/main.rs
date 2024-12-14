@@ -12,6 +12,7 @@ mod day10;
 use AoC2024::{day14};
 
 fn main() {
+    // plt_test().expect("plotter to work");
     println!("part1: {}", day14::part1());
     println!("part2: {}", day14::part2());
 }
