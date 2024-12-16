@@ -1,7 +1,8 @@
+use std::collections::HashSet;
 use nom::combinator::map;
 use nom::Parser;
 use crate::utils::read_input_file;
-use pathfinding::prelude::astar;
+use pathfinding::prelude::{astar, astar_bag};
 
 const DAY: &str = "day16";
 
@@ -192,13 +193,6 @@ fn min_bound_cost(from: Pos, to:Pos) -> usize {
 }
 
 fn solve_simple(maze: &Maze) -> Result<usize, &str> {
-    let reindeer = Reindeer {
-        direction: Dir::East,
-        position: maze.start,
-    };
-    let reindeer_pos = maze.start;
-    let reindeer_dir = Dir::East;
-
     let result = astar(
         &Reindeer { position: maze.start, direction: Dir::East },
         |&r| -> Vec<(Reindeer, usize)> {
@@ -209,19 +203,25 @@ fn solve_simple(maze: &Maze) -> Result<usize, &str> {
     );
 
     if let Some(result) = result {
-        return Ok(result.1);
-        // result.0.windows(2).map(|[prev, next]| -> Cmd {
-        //     match (prev, next) {
-        //         (&Reindeer{position: pos1, direction: _}, &Reindeer{position: pos2, direction: _})
-        //             if pos1 != pos2 => Cmd::Fwd,
-        //         (&Reindeer{position: _, direction: dir1}, &Reindeer{position: _, direction: dir2}) =>
-        //             if dir2 == dir1.right() {
-        //                 Cmd::TurnRight
-        //             } else {
-        //                 Cmd::TurnLeft
-        //             },
-        //     }
-        // })
+        Ok(result.1)
+    } else {
+        Err("No solution found")
+    }
+}
+fn solve_advanced(maze: &Maze) -> Result<usize, &str> {
+    let result = astar_bag(
+        &Reindeer { position: maze.start, direction: Dir::East },
+        |&r| -> Vec<(Reindeer, usize)> {
+            get_available_moves(&maze.map, r.position, r.direction).iter().map(|m| (r.apply(m), m.cost())).collect()
+        },
+        |&r| min_bound_cost(r.position, maze.end),
+        |state: &Reindeer| state.position == maze.end,
+    );
+
+    if let Some(result) = result {
+        let paths = result.0;
+        let positions: HashSet<Pos> = paths.flat_map(|path| path.iter().map(|n: &Reindeer| n.position).collect::<Vec<Pos>>()).collect();
+        Ok(positions.len())
     } else {
         Err("No solution found")
     }
@@ -247,9 +247,18 @@ pub fn part1() -> usize {
 
 #[test]
 fn test_part2() {
-    todo!();
+    let demo1 = parse(&read_input_file(DAY, "demo1.txt")).expect("Failed to parse demo1.txt");
+    let demo2 = parse(&read_input_file(DAY, "demo2.txt")).expect("Failed to parse demo2.txt");
+
+    let cost1 = solve_advanced(&demo1).expect("Problem to be solvable");
+    let cost2 = solve_advanced(&demo2).expect("Problem to be solvable");
+    assert_eq!(cost1, 45);
+    assert_eq!(cost2, 64);
 }
 
 pub fn part2() -> usize {
-    0
+    let full = parse(&read_input_file(DAY, "full.txt")).expect("Failed to parse full.txt");
+
+    let cost = solve_advanced(&full).expect("Problem to be solvable");
+    return cost;
 }
