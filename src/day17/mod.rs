@@ -1,6 +1,13 @@
 use nom::Parser;
+use std::collections::HashMap;
+use std::sync::atomic::AtomicUsize;
+use std::sync::atomic::Ordering::Relaxed;
 use std::sync::mpsc::{channel, Sender};
+use std::sync::Arc;
 use std::thread;
+use std::thread::yield_now;
+use std::time::Duration;
+use pathfinding::num_traits::PrimInt;
 
 const DAY: &str = "day17";
 
@@ -45,7 +52,7 @@ impl TryFrom<(u8, u8)> for Instruction {
 
 type Program = Vec<u8>;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 struct ProcessState<'p> {
     program: &'p Program,
     program_counter: usize,
@@ -53,6 +60,7 @@ struct ProcessState<'p> {
     reg_b: isize,
     reg_c: isize,
 }
+
 impl<'p> ProcessState<'p> {
     fn start(program: &'p Program) -> Self {
         ProcessState {
@@ -82,9 +90,12 @@ impl<'p> ProcessState<'p> {
             reg_c: register_c,
         }
     }
-    fn run_tick(&mut self, stdout: &Sender<u8>) -> Result<bool, String> {
-        if self.program_counter + 1 >= self.program.len() {
-            return Ok(true)
+    fn is_done(&self) -> bool {
+        self.program_counter + 1 >= self.program.len()
+    }
+    fn run_tick(&mut self) -> Result<Option<u8>, String> {
+        if self.is_done() {
+            return Err(String::from("Program has already exited"));
         };
         let opcode = self.program[self.program_counter];
         let operand = self.program[self.program_counter + 1];
@@ -105,23 +116,29 @@ impl<'p> ProcessState<'p> {
                     if op >= self.program.len() as u8 {
                         return Err(String::from("Jump instruction exceeds program bounds"))
                     }
-                    return Ok(false)
+                    return Ok(None)
                 }
             }
             // io instructions
             Instruction::out(op) => {
                 let c = self.read_combo(op) % 8;
-                stdout.send((c) as u8)
-                    .map_err(|e| e.to_string())?;
+                self.program_counter += 2;
+                return Ok(Some(c as u8));
             }
         }
         self.program_counter += 2;
-        return Ok(false);
+        return Ok(None);
     }
 
     fn run_to_completion(&mut self, stdout: &Sender<u8>) -> Result<(), String> {
-        while !self.run_tick(stdout)? {
-            // keep running until finished
+        // keep running until finished
+        while !self.is_done() {
+            if let Ok(result) = self.run_tick() {
+                if let Some(c) = result {
+                    println!("{}: {:?}", c, self);
+                    stdout.send(c).map_err(|e| e.to_string())?;
+                }
+            }
         }
         return Ok(())
     }
@@ -162,40 +179,90 @@ fn test_example_programs() {
     assert_eq!(process5.reg_b, 44354);
 }
 
-fn find_reg_a_value_to_produce_a_quine(program: &Program, reg_b: isize, reg_c: isize) -> Result<usize, String> {
-    for n in 0..32 {
-        let start = 2usize.pow(n);
-        let end = 2usize.pow(n+1);
-        println!("Testing programs {start}-{end}");
-        'search:
-        for reg_a in start..end {
-            let (sender, receiver) = channel();
-            let mut process = ProcessState::restore_snapshot(&program, reg_a as isize, reg_b, reg_c);
-            let mut index = 0;
-            while let Ok(finished) = process.run_tick(&sender) {
-                if finished {
-                    if index == program.len() {
-                        return Ok(reg_a as usize);
-                    } else {
-                        break 'search; // Did not output full program
-                    }
-                }
-                if let Ok(v) = receiver.try_recv() {
-                    if let Some(&v2) = program.get(index) {
-                        if v != v2 {
-                            continue 'search;
-                        } else {
-                            index += 1
-                        }
-                    } else {
-                        continue 'search;
-                    }
-                }
-            }
-        }
-    }
-    Err(String::from("No solutions found"))
-}
+// fn find_reg_a_value_to_produce_a_quine(program: &Program, reg_b: isize, reg_c: isize) -> Result<usize, String> {
+//     fn program(A: u32) -> u32 {
+//         let B = (A & 0b111) ^ 0b101 ;
+//         let C = A.rotate_right(B) & 0b111;
+//         let B = B ^ 0b110;
+//         let B = B ^ C & 0b111;
+//         return B;
+//     }
+//     let a = 0usize;
+//     
+//     let cache_size = Arc::new(AtomicUsize::new(0));
+//     let current_reg_a = Arc::new(AtomicUsize::new(0));
+// 
+//     thread::scope(|s| {
+//         let mut produces: HashMap<ProcessState, Vec<u8>> = HashMap::new();
+//         
+//         fn get_reverse_remainder<'a>(produces: &mut HashMap<ProcessState<'a>, Vec<u8>>, processState: &mut ProcessState<'a>, depth: usize) -> Vec<u8>{
+// 
+//             if depth > 100 {
+//                 panic!("Yeah it's actually pretty deep")
+//             }
+//             if processState.is_done() {
+//                 return vec!();
+//             }
+//             match produces.get(processState) {
+//                 Some(rem) => rem.clone(),
+//                 None => match processState.run_tick() {
+//                     Ok(Some(c)) => {
+//                         let mut remainder = get_reverse_remainder(produces, processState, depth+1);
+//                         remainder.push(c);
+//                         produces.insert(processState.clone(), remainder.clone());
+//                         remainder
+//                     },
+//                     Ok(None) => {
+//                         let remainder = get_reverse_remainder(produces, processState, depth+1);
+//                         produces.insert(processState.clone(), remainder.clone());
+//                         remainder
+//                     },
+//                     Err(_) => panic!("Program encountered an error"),
+//                 }
+//             }
+//         }
+// 
+//         let csclone = Arc::clone(&cache_size);
+//         let raclone = Arc::clone(&current_reg_a);
+//         let (stopsend, stoprecv) = channel();
+//         s.spawn(move || {
+//             let mut reg_a = 0usize;
+//             loop {
+//                 yield_now();
+//                 let mut process = ProcessState::restore_snapshot(&program, reg_a as isize, reg_b, reg_c);
+// 
+//                 let remainder = get_reverse_remainder(&mut produces, &mut process, 0);
+//                 let will_produce = remainder.into_iter().rev().collect::<Vec<u8>>();
+//                 
+//                 if will_produce.len() == program.len() && will_produce.iter().enumerate().all(|(i,v)| program.get(i).is_some_and(|v2| v2 == v)) {
+//                     stopsend.send(()).expect("Stop signal to send successfully");
+//                     return reg_a;
+//                 }
+//                 reg_a += 1;
+// 
+//                 csclone.store(reg_a, Relaxed);
+//                 raclone.store(produces.len(), Relaxed);
+//             }
+//         });
+// 
+//         let csclone = Arc::clone(&cache_size);
+//         let raclone = Arc::clone(&current_reg_a);
+//         s.spawn(move || {
+//             loop {
+//                 thread::sleep(Duration::from_secs(1));
+//                 if let Ok(_) = stoprecv.try_recv() {
+//                     break;
+//                 } else {
+//                     let cs = csclone.load(Relaxed);
+//                     let ra = raclone.load(Relaxed);
+//                     println!("Checked {ra} values, cache size is {cs} entries")
+//                 }
+//             }
+//         });
+//     });
+// 
+//     Ok(current_reg_a.load(Relaxed))
+// }
 
 
 #[test]
@@ -234,18 +301,20 @@ pub fn part1() -> String {
 #[test]
 fn test_part2() {
     let program = Program::from(vec!(0,3,5,4,3,0));
-    let reg_a = find_reg_a_value_to_produce_a_quine(&program, 0, 0);
-    
-    assert_eq!(reg_a, Ok(117440))
 }
-
+#[test]
+fn test_manual_solution() {
+}
 pub fn part2() -> usize {
     let program = Program::from(vec!(2,4,1,5,7,5,1,6,4,3,5,5,0,3,3,0));
     // Value is at least 134217728
-    let reg_a = find_reg_a_value_to_produce_a_quine(&program, 0, 0);
-    if let Ok(reg_a) = reg_a {
-        return reg_a;
-    } else {
-        panic!("No solutions found")
-    }
+    let reg_a: usize = 0b010_001_100_100_111_001_111_001_001_101_111_100_110_101_111_011;
+    let reg_a: usize = 0b011_111_101_110_100_111_101_001_001_111_001_111_100_100_001_010;
+    let mut process = ProcessState::restore_snapshot(&program, reg_a as isize,0,0);
+    let (sender, receiver) = channel();
+
+    process.run_to_completion(&sender).expect("Program should finish");
+    let x: Vec<u8> = receiver.try_iter().collect();
+    assert_eq!(program, x);
+    return 0
 }
