@@ -1,7 +1,7 @@
 mod utils;
-use AoC2024::{day18};
+use AoC2024::{day19};
 
 fn main() {
-    println!("part1: {}", day18::part1());
-    println!("part2: {}", day18::part2());
+    println!("part1: {}", day19::part1());
+    println!("part2: {}", day19::part2());
 }
