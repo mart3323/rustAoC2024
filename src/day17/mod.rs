@@ -1,5 +1,6 @@
 use nom::Parser;
 use std::collections::HashMap;
+use std::ops::Shl;
 use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering::Relaxed;
 use std::sync::mpsc::{channel, Sender};
@@ -307,6 +308,7 @@ fn test_manual_solution() {
 }
 pub fn part2() -> usize {
     let program = Program::from(vec!(2,4,1,5,7,5,1,6,4,3,5,5,0,3,3,0));
+
     // Value is at least 134217728
     let reg_a: usize = 0b010_001_100_100_111_001_111_001_001_101_111_100_110_101_111_011;
     let reg_a: usize = 0b011_111_101_110_100_111_101_001_001_111_001_111_100_100_001_010;
@@ -317,4 +319,45 @@ pub fn part2() -> usize {
     let x: Vec<u8> = receiver.try_iter().collect();
     assert_eq!(program, x);
     return 0
+}
+
+fn part2_solve_one_digit(previous: u8, expect: u8) -> Vec<u8>{
+    let mut options = Vec::with_capacity(8);
+    for b in 0b000..0b111 {
+        if program(previous.shl(3) + b) == expect {
+            options.push(b)
+        }
+    }
+    return options;
+}
+fn program(A: u8) -> u8 {
+    let B = (A & 0b111) ^ 0b101 ;
+    let C = A.rotate_right(B as u32) & 0b111;
+    let B = B ^ 0b110;
+    let B = B ^ C & 0b111;
+    return B as u8;
+}
+fn solve_part2_recursive(previous: u8, expect: &[u8]) -> Option<Vec<u8>> {
+    println!("{},{:?}", previous, expect);
+    if let Some(n) = expect.first() {
+        let mut options = part2_solve_one_digit(previous, *n);
+        options.sort_by(|a,b| b.cmp(a));
+        println!("options: {:?}", options);
+        for opt in options {
+            if let Some(mut result) = solve_part2_recursive(previous*8+opt, &expect[1..]) {
+                result.push(opt);
+                return Some(result);
+            };
+        };
+        return None;
+    } else {
+        return Some(vec!());
+    }
+}
+#[test]
+fn solve_part2() {
+    let res = solve_part2_recursive(0, &[0, 3,4,5,3, 0]);
+    if let Some(result) = res {
+        println!("{:#?}", result);
+    };
 }
