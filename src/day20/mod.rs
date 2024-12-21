@@ -19,6 +19,36 @@ impl Pos {
             Self { x: self.x - 1, y: self.y },
         ]
     }
+    fn offset(&self, dx: i32, dy: i32) -> Pos {
+        Pos {
+            x: self.x + dx,
+            y: self.y + dy
+        }
+    }
+    fn get_taxicab_circle(&self, distance: u16) -> Vec<Pos> {
+        let mut circle = Vec::with_capacity((distance*4) as usize);
+        let distance = distance as i32;
+        let range = -distance..=distance;
+        for y in range {
+            let x = distance - y.abs();
+            circle.push(self.offset(x,y));
+            let x = -x;
+            circle.push(self.offset(x,y));
+        }
+        return circle;
+    }
+    fn get_taxicab_disk(&self, distance: u16) -> Vec<Pos> {
+        let mut circle = Vec::with_capacity(((2*distance - 1).pow(2)) as usize);
+        let distance = distance as i32;
+        let range = -distance..=distance;
+        for y in range {
+            let rem = distance - y.abs();
+            for x in -rem..=rem {
+                circle.push(self.offset(x,y))
+            }
+        }
+        return circle;
+    }
     fn taxicab_distance(&self, other: &Pos) -> u32 {
         self.x.abs_diff(other.x) + self.y.abs_diff(other.y)
     }
@@ -116,7 +146,7 @@ fn parse_input(str: &str) -> Racetrack {
 }
 
 /// Get the time-saved for every possible shortcut on the track
-fn get_shortcuts(racetrack: &Racetrack) -> Vec<usize> {
+fn get_shortcuts(racetrack: &Racetrack, max_cheat_len: usize, min_savings: usize) -> Vec<usize> {
     let width = racetrack.map.width;
     let height = racetrack.map.height();
     let mut normally_reachable_in = Map::filled(width, height, &None);
@@ -134,14 +164,13 @@ fn get_shortcuts(racetrack: &Racetrack) -> Vec<usize> {
         // update time
         time += 1;
 
-        for n1 in pos.neighbors() {
-            for n2 in n1.neighbors() {
-                if n2.taxicab_distance(&pos) == 2 && racetrack.map.contains_pos(&n2) {
-                    if let Some(cut_time) = normally_reachable_in.get_at(&n2) {
-                        let profit = time - (cut_time + 2);
-                        if 0 < profit {
-                            shortcuts.push(profit);
-                        }
+        for pos_from in pos.get_taxicab_disk(max_cheat_len as u16) {
+            if racetrack.map.contains_pos(&pos_from) {
+                if let Some(cut_time) = normally_reachable_in.get_at(&pos_from) {
+                    let cheat_length = pos_from.taxicab_distance(&pos);
+                    let profit = time as i64 - (cut_time + cheat_length) as i64;
+                    if min_savings as i64 <= profit {
+                        shortcuts.push(profit as usize);
                     }
                 }
             }
@@ -154,8 +183,7 @@ fn get_shortcuts(racetrack: &Racetrack) -> Vec<usize> {
 fn test_part_1() {
     let racetrack = parse_input(&read_input_file(DAY, "demo.txt"));
 
-
-    let mut shortcuts: Vec<usize> = get_shortcuts(&racetrack);
+    let mut shortcuts: Vec<usize> = get_shortcuts(&racetrack, 2, 2);
     shortcuts.sort();
 
     assert_eq!(shortcuts, vec!(2,2,2,2,2,2,2,2,2,2,2,2,2,2,4,4,4,4,4,4,4,4,4,4,4,4,4,4,6,6,8,8,8,8,10,10,12,12,12,20,36,38,40,64));
@@ -163,12 +191,41 @@ fn test_part_1() {
 
 pub fn part1() -> usize {
     let racetrack = parse_input(&read_input_file(DAY, "full.txt"));
-    let mut shortcuts: Vec<usize> = get_shortcuts(&racetrack);
-    let count_over_100 = shortcuts.into_iter().filter(|&saved| 100 <= saved).count();
-    
-    return count_over_100;
+    let shortcuts: Vec<usize> = get_shortcuts(&racetrack, 2, 100);
+
+    let sol = shortcuts.len();
+    return sol;
 }
 
+#[test]
+fn test_part_2() {
+    let racetrack = parse_input(&read_input_file(DAY, "demo.txt"));
+
+    let mut shortcuts: Vec<usize> = get_shortcuts(&racetrack, 20, 50);
+    shortcuts.sort();
+
+    let mut expected = Vec::new();
+    for _ in 0..32 { expected.push(50)}
+    for _ in 0..31 { expected.push(52)}
+    for _ in 0..29 { expected.push(54)}
+    for _ in 0..39 { expected.push(56)}
+    for _ in 0..25 { expected.push(58)}
+    for _ in 0..23 { expected.push(60)}
+    for _ in 0..20 { expected.push(62)}
+    for _ in 0..19 { expected.push(64)}
+    for _ in 0..12 { expected.push(66)}
+    for _ in 0..14 { expected.push(68)}
+    for _ in 0..12 { expected.push(70)}
+    for _ in 0..22 { expected.push(72)}
+    for _ in 0..4 { expected.push(74)}
+    for _ in 0..3 { expected.push(76)}
+    
+    assert_eq!(shortcuts, expected);
+}
 pub fn part2() -> usize {
-    todo!()
+    let racetrack = parse_input(&read_input_file(DAY, "full.txt"));
+    let shortcuts: Vec<usize> = get_shortcuts(&racetrack, 20, 100);
+
+    let sol = shortcuts.len();
+    return sol;
 }
