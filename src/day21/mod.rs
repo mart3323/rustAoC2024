@@ -1,173 +1,125 @@
-use std::cmp::min;
-use std::fmt::{Display, Formatter};
-use cached::proc_macro::cached;
+mod gpu;
 
-const DAY: &str = "day20";
+use std::sync::mpsc;
+use std::thread;
+use crate::day21::gpu::part2_run_on_gpu;
+use crate::utils::read_input_file;
 
-fn cost_move(dx: i8, dy: i8) -> usize {
-    let mut mv_cost = 0;
-    if dx < 0 {
-        mv_cost = 3
-    } else if dy > 0 {
-        mv_cost = 2
-    } else if dx == 0 && dy < 0 || dx > 0 && dy == 0 {
-        mv_cost = 1
-    } else if dx == 0 && dy == 0 {
-        mv_cost = 0;
-    } else {
-        panic!()
+const DAY: &str = "day21";
+
+
+#[derive(Ord, PartialOrd, Eq, PartialEq, Copy, Clone, Debug, Hash)]
+struct MonkeySecret(u32);
+impl MonkeySecret {
+    const PRUNE_MOD: u32 = 16777216;
+    fn mix_mul_prune(&self, with: u32) -> Self {
+        let mut nv = self.0 as u64;
+        nv ^= self.0 as u64 * with as u64;
+        nv %= Self::PRUNE_MOD as u64;
+        MonkeySecret(nv as u32)
     }
-    return mv_cost
-}
-
-#[derive(Eq, PartialEq, Copy, Clone, Debug, Hash)]
-enum KeypadKey {
-    D1,
-    D2,
-    D3,
-    D4,
-    D5,
-    D6,
-    D7,
-    D8,
-    D9,
-    D0,
-    A
-}
-impl KeypadKey {
-    #[rustfmt::skip]
-    fn position(&self) -> (usize, usize) {
-        use KeypadKey::*;
-        match self {
-            D7 => (0,0), D8 => (1,0), D9 => (2,0),
-            D4 => (0,1), D5 => (1,1), D6 => (3,1),
-            D1 => (0,2), D2 => (1,2), D3 => (2,2),
-                         D0 => (1,3),  A => (2,3),
-        }
+    fn mix_div_prune(&self, with: u32) -> Self {
+        let mut nv = self.0 as u64;
+        nv ^= self.0 as u64 / with as u64;
+        nv %= Self::PRUNE_MOD as u64;
+        MonkeySecret(nv as u32)
     }
-}
-fn cost_to_input_code(input: Vec<KeypadKey>, depth: usize) -> usize {
-    let mut pos = KeypadKey::A.position();
-    let mut cost = 0;
-    for digit in input {
-        let target = digit.position();
-        let dx = target.0 as i8 - pos.0 as i8;
-        let dy = target.1 as i8 - pos.1 as i8;
-        if dx == 0 && dy == 0 {
-        } else if dx < 0 {
-            cost += cost_to_press_key(DirpadKey::Left, depth) + dy.abs() as usize + dx.abs() as usize - 1;
-        } else if dy > 0 {
-            cost += cost_to_press_key(DirpadKey::Down, depth) + dy.abs() as usize + dx.abs() as usize - 1;
-        } else if dx > 0 && dy < 0 {
-            cost += dy.abs() as usize + dx.abs() as usize - 2;
-            cost += cost_to_press_key(DirpadKey::Right, depth);
-            cost += cost_to_press_key(DirpadKey::Up, depth);
-        } else if dx > 0 {
-            cost += dy.abs() as usize + dx.abs() as usize - 1;
-            cost += cost_to_press_key(DirpadKey::Right, depth);
-        } else if dy < 0 {
-            cost += dy.abs() as usize + dx.abs() as usize - 1;
-            cost += cost_to_press_key(DirpadKey::Up, depth);
-        } else {
-            panic!();
-        }
-        cost += 1;
-        println!("{:?}, {} ({}, {})", digit, cost, dx, dy);
-        pos = target;
-    };
-    return cost;
-}
 
-#[derive(Eq, PartialEq, Copy, Clone, Debug, Hash)]
-enum DirpadKey {
-    Up=0,
-    Down=1,
-    Left=2,
-    Right=3,
-    A =4,
-}
-impl Display for DirpadKey {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", match self {
-            DirpadKey::Up => "^",
-            DirpadKey::Down => "v",
-            DirpadKey::Left => "<",
-            DirpadKey::Right => ">",
-            DirpadKey::A => "A",
-        })
+    fn next_secret(&self) -> Self {
+        self.mix_mul_prune(64)
+            .mix_div_prune(32)
+            .mix_mul_prune(2048)
     }
-}
-#[cached]
-/// Given a sequence of 'depth' keypads, return the number of presses required on the first keypad
-/// in order to press the given key on the last keypad.
-///
-/// A depth of 0 corresponds to having direct access to the output keypad
-/// A depth of 1 corresponds to having one robot controlled keypad, followed by the one you have direct control over
-fn cost_to_press_key(btn: DirpadKey, depth: usize) -> usize {
-    use DirpadKey::*;
-    // println!("ctpk({}, {})", btn, depth);
-    if depth == 0 {
-        1
-    } else if btn == A {
-        1
-    } else {
-        let next = depth - 1;
-        let nextCost = |dir| cost_to_press_key(dir, next);
-        match btn {
-            A => nextCost(A),
-            Up => [Left, A, Right, A].map(nextCost).iter().sum::<usize>() + 1,
-            Right => [Down, A, Up, A].map(nextCost).iter().sum::<usize>() + 1,
-            Down => {
-                let option1 = [Left, Down, A, Right, Up, A].map(nextCost).iter().sum::<usize>();
-                let option2 = [Down, Left, A, Right, Up, A].map(nextCost).iter().sum::<usize>();
-                let option3 = [Down, Left, A, Up, Right, A].map(nextCost).iter().sum::<usize>();
-                let option4 = [Left, Down, A, Up, Right, A].map(nextCost).iter().sum::<usize>();
-                return min(min(min(option1, option2), option3), option4) + 1;
-            },
-            Left => {
-                let option1 = [Left, Down, Left, A, Right, Up, Right, A].map(nextCost).iter().sum::<usize>();
-                let option2 = [Down, Left, Left, A, Right, Up, Right, A].map(nextCost).iter().sum::<usize>();
-                let option3 = [Down, Left, Left, A, Right, Right, Up, A].map(nextCost).iter().sum::<usize>();
-                let option4 = [Left, Down, Left, A, Right, Up, Right, A].map(nextCost).iter().sum::<usize>();
-                return min(min(min(option1, option2), option3), option4) + 1;
-            },
-        }
+    fn price(&self) -> u32 {
+        self.0 % 10
     }
-}
-
-fn parse_code(s: &str) -> Vec<KeypadKey> {
-    s.chars().map(|c| match c {
-        '0' => KeypadKey::D0,
-        '1' => KeypadKey::D1,
-        '2' => KeypadKey::D2,
-        '3' => KeypadKey::D3,
-        '4' => KeypadKey::D4,
-        '5' => KeypadKey::D5,
-        '6' => KeypadKey::D6,
-        '7' => KeypadKey::D7,
-        '8' => KeypadKey::D8,
-        '9' => KeypadKey::D9,
-        'A' => KeypadKey::A,
-        _ => panic!(),
-    }).collect()
 }
 
 #[test]
-fn test_costs() {
-
-    let codes = vec!("029A", "980A", "179A", "456A", "379A");
-    for code in codes {
-        let c = parse_code(code);
-        println!("{}: {}", code, cost_to_input_code(c, 1));
+fn test_monkey_secret() {
+    let mut a = MonkeySecret(123);
+    for expect in [15887950, 16495136, 527345, 704524, 1553684, 12683156, 11100544, 12249484, 7753432, 5908254] {
+        a = a.next_secret();
+        assert_eq!(MonkeySecret(expect), a);
     }
+    let expectations = vec!((1, 8685429), (10,4700978), (100,15273692), (2024, 8667524));
+    for (start, expect) in expectations {
+        let mut nr = MonkeySecret(start);
+        for _ in 0..2000 {
+            nr = nr.next_secret();
+        }
+        assert_eq!(MonkeySecret(expect), nr);
+    }
+}
 
+pub fn part1() -> u64 {
+    let file_contents = read_input_file(DAY, "full.txt");
+    let mut sum: u64 = 0;
+    for line in file_contents.lines() {
+        let initial_number = str::parse(line.trim_end()).expect("All numbers to parse successfully");
+        let mut nr = MonkeySecret(initial_number);
+        for _ in 0..2000 {
+            nr = nr.next_secret();
+        }
+        sum += nr.0 as u64;
+    }
+    return sum
+}
 
-    use DirpadKey::*;
-    for depth in 1..5 {
-        println!("---");
-        for btn in [A, Right, Up, Left, Down] {
-            let cost = cost_to_press_key(btn, depth);
-            println!("At depth {}, button {} costs {}", depth, btn, cost)
+#[test]
+fn test_part2_gpu() {
+    let profits = part2_run_on_gpu(vec!(1, 2, 3, 2024));
+    let max = profits.into_iter().max();
+    println!("{:?}", max);
+    assert_eq!(Some(23), max);
+}
+fn part2_gpu() -> u32 {
+    let file_contents = read_input_file(DAY, "full.txt");
+    let monkeys: Vec<u32> = file_contents.lines().into_iter().map(str::trim_end).map(str::parse).collect::<Result<Vec<u32>, _>>().expect("To parse correctly");
+    // println!("{:?}", monkeys);
+    let profits = part2_run_on_gpu(monkeys);
+    // println!("{:?}", profits);
+    if let Some(profit) = profits.iter().max() {
+        return *profit;
+    } else {
+        panic!();
+    }
+}
+
+#[test]
+fn test_part2_memory() {
+    let max = part2_memory(vec!(1, 2, 3, 2024));
+    assert_eq!(23, max);
+}
+fn part2_memory(monkeys: Vec<u32>) -> u32 {
+    let mut total_reward_for_pattern = vec![0; 19*19*19*19];
+    for monkey in monkeys {
+        let mut reward_for_pattern = vec![0; 19*19*19*19];
+        let mut secret = MonkeySecret(monkey);
+        let mut diffs = [0,0,0,0];
+        for i in 0..2000 {
+            let prev = secret;
+            secret = secret.next_secret();
+            diffs = [diffs[1], diffs[2], diffs[3], secret.price() as i8 - prev.price() as i8];
+            if 3 < i {
+                let [d,c,b,a] = [diffs[0]+9, diffs[1]+9, diffs[2]+9, diffs[3]+9];
+                let index: usize = ((a as u32) + (b as u32)*19 + (c as u32)*19*19 + (d as u32)*19*19*19) as usize;
+                if reward_for_pattern[index] == 0 {
+                    reward_for_pattern[index] = secret.price()+1
+                }
+            }
+        }
+        for (i,v) in reward_for_pattern.iter().enumerate() {
+            total_reward_for_pattern[i] += if *v == 0 { 0 } else { v-1 };
         }
     }
+    return total_reward_for_pattern.into_iter().max().unwrap()
+}
+pub fn part2() -> u32 {
+    let file_contents = read_input_file(DAY, "full.txt");
+    let monkeys: Vec<u32> = file_contents.lines().into_iter().map(str::trim_end).map(str::parse)
+        .collect::<Result<Vec<u32>, _>>().expect("To parse correctly");
+
+    let total_price = part2_memory(monkeys);
+    return total_price;
 }
