@@ -5,7 +5,7 @@ use crate::utils::read_input_file;
 
 const DAY: &str = "day22";
 
-#[derive(Debug, Eq, PartialEq, Clone, Hash, Ord, PartialOrd, Hash)]
+#[derive(Debug, Eq, PartialEq, Clone, Hash, Ord, PartialOrd)]
 struct NetAddr(String);
 impl From<&str> for NetAddr {
     fn from(addr: &str) -> Self {
@@ -139,4 +139,78 @@ pub fn part1() -> usize {
         .count();
 
     return total;
+}
+
+
+#[test]
+fn test_part2() {
+    let string = read_input_file(DAY, "demo.txt");
+    let mut cliques: Vec<HashSet<NetAddr>> = vec!();
+}
+pub fn part2() -> usize {
+
+    // let string = read_input_file(DAY, "full.txt");
+    // let mut cliques: Vec<HashSet<NetAddr>> = vec!();
+    // let mut mark_connected = |a: NetAddr, b: NetAddr| {
+    //     for (a,b) in [(&a,&b), (&b,&a)] {
+    //         cliques.push(HashSet::from([b.clone(), a.clone()]));
+    //     }
+    // };
+    // 
+    // 
+    // 
+    // string.lines()
+    //     .for_each(|l| {
+    //         let l = l.trim_end();
+    //         let mut l = l.split("-");
+    //         let pc_a: NetAddr = l.next().unwrap().into();
+    //         let pc_b: NetAddr = l.next().unwrap().into();
+    //         mark_connected(pc_a, pc_b);
+    //     });
+    // 
+    // let mut remaining_addresses: HashSet<&NetAddr> = connected.keys().collect();
+    // let mut already_checked = HashSet::with_capacity(connected.keys().count());
+    // let mut largest_party: HashSet<&NetAddr>;
+    // 
+    // while let Some(&first) = remaining_addresses.iter().next() {
+    //     let mut potential_party = HashSet::from([first]);
+    // 
+    //     for other in connected.keys() {
+    //         if !potential_party.contains(other) {
+    //             if potential_party.iter().all(|m| connected.get(m).unwrap().contains(other)) {
+    //                 potential_party.insert(other);
+    //             }
+    //         }
+    //     }
+    // }
+    // for key in remaining_addresses.keys() {
+    //     if largest_party.len() < potential_party.len() {
+    //         largest_party = potential_party;
+    //     }
+    //     potential_party.iter().for_each(|m| { already_checked.insert(m); });
+    // }
+    // 
+    // 
+    // let total: usize = connected.keys()
+    //     .flat_map(|a|
+    //         connected.get(a).unwrap()
+    //             .iter()
+    //             .filter(move |b| a < b)
+    //             .map(move |b| (a, b))
+    //     )
+    //     .flat_map(|(a,b)|
+    //         connected.get(b).unwrap()
+    //             .iter()
+    //             .filter(move |c| b < c)
+    //             .map(move |c| (a, b, c))
+    //     )
+    //     .filter(|(a,b,c)| a < b && b < c)
+    //     .filter(|(a,b,c)| connected.get(a).unwrap().contains(c))
+    //     .filter(|(a,b,c)| {
+    //         return a.0.starts_with("t") || b.0.starts_with("t") || c.0.starts_with("t")
+    //     })
+    //     .count();
+    // 
+    // return total;
+    0
 }
