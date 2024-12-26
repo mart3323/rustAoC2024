@@ -75,8 +75,8 @@ enum Error { OutOfBounds }
 impl<T: Display> Map2D<T> {
     /// Returns the given position as a map index, ONLY IF the position is within the bounds of the map
     fn as_index(&self, pos: &Pos) -> Option<usize> {
-        if 0 <= pos.col && pos.col <= self.width as isize &&
-        0 <= pos.row && pos.row <= self.height as isize {
+        if 0 <= pos.col && pos.col < self.width as isize &&
+        0 <= pos.row && pos.row < self.height as isize {
             Some((pos.col + (self.width as isize * pos.row)) as usize)
         } else {
             None
@@ -202,38 +202,38 @@ fn solve_simple(initial_state: &AntennaMap) -> usize {
     
     assert_eq!(antinodes_map.map.len(), initial_state.width * initial_state.height);
 
-    // for y in 0..initial_state.height {
-    //     for x in 0..initial_state.width {
-    //         let pos = Pos { col: x as isize, row: y as isize };
-    //         let cell = initial_state.get_cell(&pos).unwrap();
-    //         let power = *antinodes_map.get_cell(&pos).unwrap();
-    //         const gray: &str = "\x1b[90m";
-    //         const green: &str = "\x1b[92m";
-    //         const yellow: &str = "\x1b[93m";
-    //         const red: &str = "\x1b[91m";
-    //         const purple: &str = "\x1b[95m";
-    //         const reset: &str = "\x1b[0m";
-    //         match (cell, power) {
-    //             (Cell{antenna: None}, 0) => print!("{}░{} ", gray, reset),
-    //             (Cell{antenna: None}, 1) => print!("{}░{} ", green, reset),
-    //             (Cell{antenna: None}, 2) => print!("{}░{} ", yellow, reset),
-    //             (Cell{antenna: None}, 3) => print!("{}░{} ", red, reset),
-    //             (Cell{antenna: None}, _) => print!("{}░{} ", red, reset),
-    // 
-    //             (Cell{antenna: Some(freq)}, 0) => print!("{freq} "),
-    //             (Cell{antenna: Some(freq)}, 1) => print!("{}{freq}{} ", green, reset),
-    //             (Cell{antenna: Some(freq)}, 2) => print!("{}{freq}{} ", yellow, reset),
-    //             (Cell{antenna: Some(freq)}, 3) => print!("{}{freq}{} ", red, reset),
-    //             (Cell{antenna: Some(freq)}, _) => print!("{}{freq}{} ", purple, reset),
-    // 
-    //         }
-    //     }
-    //     print!("\n")
-    // }
-    // println!("Antennas");
-    // println!("{}", initial_state);
-    // println!("Antinodes");
-    // print_numeric(&antinodes_map);
+    for y in 0..initial_state.height {
+        for x in 0..initial_state.width {
+            let pos = Pos { col: x as isize, row: y as isize };
+            let cell = initial_state.get_cell(&pos).unwrap();
+            let power = *antinodes_map.get_cell(&pos).unwrap();
+            const gray: &str = "\x1b[90m";
+            const green: &str = "\x1b[92m";
+            const yellow: &str = "\x1b[93m";
+            const red: &str = "\x1b[91m";
+            const purple: &str = "\x1b[95m";
+            const reset: &str = "\x1b[0m";
+            match (cell, power) {
+                (Cell{antenna: None}, 0) => print!("{}░{} ", gray, reset),
+                (Cell{antenna: None}, 1) => print!("{}░{} ", green, reset),
+                (Cell{antenna: None}, 2) => print!("{}░{} ", yellow, reset),
+                (Cell{antenna: None}, 3) => print!("{}░{} ", red, reset),
+                (Cell{antenna: None}, _) => print!("{}░{} ", red, reset),
+    
+                (Cell{antenna: Some(freq)}, 0) => print!("{freq} "),
+                (Cell{antenna: Some(freq)}, 1) => print!("{}{freq}{} ", green, reset),
+                (Cell{antenna: Some(freq)}, 2) => print!("{}{freq}{} ", yellow, reset),
+                (Cell{antenna: Some(freq)}, 3) => print!("{}{freq}{} ", red, reset),
+                (Cell{antenna: Some(freq)}, _) => print!("{}{freq}{} ", purple, reset),
+    
+            }
+        }
+        print!("\n")
+    }
+    println!("Antennas");
+    println!("{}", initial_state);
+    println!("Antinodes");
+    print_numeric(&antinodes_map);
     unique_antinode_locations
 }
 fn solve_advanced(initial_state: &AntennaMap) -> usize {
@@ -248,6 +248,7 @@ fn test_solve_simple() {
     
     let full_input = parse_file("full.txt").expect("full.txt failed to parse");
     let answer = solve_simple(&full_input);
+    assert_ne!(answer, 366); // Failed submission 1
     assert!(answer < 366); // Failed submission 1
 }
 #[test]
