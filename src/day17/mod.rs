@@ -1,3 +1,5 @@
+mod reverse;
+
 use nom::Parser;
 use std::collections::HashMap;
 use std::ops::Shl;
@@ -15,21 +17,21 @@ const DAY: &str = "day17";
 #[repr(u8)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Instruction {
-    /// A = A / 2^[cmb](ProcessState::read_combo)
+    /// A shift left [cmb](ProcessState::read_combo) bits
     adv(u8)=0,
     /// B = B xor OP
     bxl(u8)=1,
-    /// B = [cmb](ProcessState::read_combo) % 8
+    /// B = 3 least significant bits of [cmb](ProcessState::read_combo)
     bst(u8)=2,
     /// Jump to OP if A != 0
     jnz(u8)=3,
     /// B = B xor C
     bxc=4,
-    /// out <-- combo % 8
+    /// out <-- 3 least significant bits of [cmb](ProcessState::read_combo)
     out(u8)=5,
-    /// B = A / 2´[cmd](ProcessState::read_combo)
+    /// B = A shift left [cmd](ProcessState::read_combo) bits
     bdv(u8)=6,
-    /// C = A / 2´[cmd](ProcessState::read_combo)
+    /// C = A shift left [cmd](ProcessState::read_combo) bits
     cdv(u8)=7,
 }
 impl TryFrom<(u8, u8)> for Instruction {
