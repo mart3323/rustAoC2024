@@ -1,5 +1,5 @@
 use criterion::{criterion_group, criterion_main, Criterion};
-use AoC2024::{day0, day10, day11, day12, day13, day2, day3, day4, day5, day6, day7, day8, day9};
+use AoC2024::{day0, day10, day11, day12, day13, day15, day16, day17, day18, day19, day20, day21, day22, day24, day2, day3, day4, day5, day6, day7, day8, day9 };
 
 fn day0(c: &mut Criterion) {
     c.bench_function("day 0 part1", |b| b.iter(day0::part1));
@@ -56,10 +56,44 @@ fn day13(c: &mut Criterion) {
     c.bench_function("day 13 part1", |b| b.iter(day13::part1));
     c.bench_function("day 13 part2", |b| b.iter(day13::part2));
 }
-fn day14(c: &mut Criterion) {
-    c.bench_function("day 14 part1", |b| b.iter(day14::part1));
-    c.bench_function("day 14 part2", |b| b.iter(day14::part2));
+fn day15(c: &mut Criterion) {
+    c.bench_function("day 15 part1", |b| b.iter(day15::part1));
+    c.bench_function("day 15 part2", |b| b.iter(day15::part2));
+}
+fn day16(c: &mut Criterion) {
+    c.bench_function("day 16 part1", |b| b.iter(day16::part1));
+    c.bench_function("day 16 part2", |b| b.iter(day16::part2));
+}
+fn day17(c: &mut Criterion) {
+    c.bench_function("day 17 part1", |b| b.iter(day17::part1));
+    // c.bench_function("day 17 part2", |b| b.iter(day17::part2));
+}
+fn day18(c: &mut Criterion) {
+    c.bench_function("day 18 part1", |b| b.iter(day18::part1));
+    c.bench_function("day 18 part2", |b| b.iter(day18::part2));
+}
+fn day19(c: &mut Criterion) {
+    c.bench_function("day 19 part1", |b| b.iter(day19::part1));
+    c.bench_function("day 19 part2", |b| b.iter(day19::part2));
+}
+fn day20(c: &mut Criterion) {
+    c.bench_function("day 20 part1", |b| b.iter(day20::part1));
+    c.bench_function("day 20 part2", |b| b.iter(day20::part2));
+}
+fn day21(c: &mut Criterion) {
+    c.bench_function("day 21 part1", |b| b.iter(day21::part1));
+    c.bench_function("day 21 part2", |b| b.iter(day21::part2));
+}
+fn day22(c: &mut Criterion) {
+    c.bench_function("day 22 part1", |b| b.iter(day22::part1));
+    c.bench_function("day 22 part2", |b| b.iter(day22::part2));
 }
 
-criterion_group!(benches, day0, day1, day2, day3, day4, day5, day6, day7, day8, day9, day10, day11, day12, day13);
+fn day24(c: &mut Criterion) {
+    c.bench_function("day 24 part1", |b| b.iter(day24::part1));
+    c.bench_function("day 24 part2", |b| b.iter(day24::part2));
+}
+
+// criterion_group!(benches, day0, day1, day2, day3, day4, day5, day6, day7, day8, day9, day10, day11, day12, day13);
+criterion_group!(benches, day15, day16, day17, day18, day19, day20, day21, day22, day24);
 criterion_main!(benches);

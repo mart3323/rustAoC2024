@@ -1,6 +1,6 @@
 use crate::utils::read_input_file;
 use nom::character::char;
-use std::collections::VecDeque;
+use std::collections::{HashMap, VecDeque};
 use std::fmt::{write, Debug, Display, Formatter};
 
 type Frequency = char;
@@ -52,6 +52,26 @@ impl Debug for DiskRegion {
 #[derive(Debug, Clone)]
 struct DiskMap {
     regions: Vec<DiskRegion>,
+}
+impl Display for DiskMap {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let mut s = String::new();
+        for region in &self.regions {
+            match region {
+                DiskRegion::Free(FreeRegion { len }) => {
+                    for _ in 0..*len {
+                        s.push('.');
+                    }
+                },
+                DiskRegion::Used(UsedRegion { pid, len }) => {
+                    for _ in 0..*len {
+                        s.push_str(&format!("{}", pid));
+                    }
+                },
+            }
+        }
+        return write!(f, "{}", s);
+    }
 }
 impl DiskMap {
     fn from_compressed_string(str: &str) -> DiskMap {
@@ -149,38 +169,49 @@ fn fmt_vecdeque(d: &VecDeque<DiskRegion>) -> String {
     }).collect()
 }
 fn compress_advanced(input: &DiskMap) -> DiskMap {
-    let mut input = VecDeque::from(input.regions.clone());
-    let mut output: Vec<DiskRegion> = Vec::new();
-    while let Some(ref front) = input.pop_front() {
-        match front {
-            DiskRegion::Used(ref used) => {
-                output.push(front.clone());
-            }
-            DiskRegion::Free(ref free) => {
-                let index_to_move = input.iter().enumerate().rfind(|(index, item)| {
-                    if let DiskRegion::Used(used) = item {
-                        if used.len <= free.len {
-                            return true
+    let mut output: Vec<DiskRegion> = input.regions.clone();
+    
+    let mut processed_pids_above = usize::MAX;
+    let mut i = output.len();
+    'cursor_right:
+    while 0 <= i {
+        if let Some(DiskRegion::Used(UsedRegion { pid, len })) = output.get(i) {
+            if *pid < processed_pids_above {
+                processed_pids_above = *pid;
+                
+                let len = *len;
+                let mut j = 0;
+                'cursor_left:
+                while j < i {
+                    if let Some(DiskRegion::Free(FreeRegion { len: free_space })) = output.get_mut(j) {
+                        if len <= *free_space {
+                            // Reduce free space
+                            *free_space -= len;
+                            let free_space = *free_space;
+                            // Move DiskRegion
+                            let item = output.remove(i);
+                            output.insert(i, DiskRegion::Free(FreeRegion { len }));
+                            output.insert(j, item);
+                            if free_space == 0 {
+                                output.remove(j + 1);
+                                i -= 1;
+                            }
+                            i -= 1;
+                            // Do not move the right cursor, we just rotated a new sector to the same index
+                            continue 'cursor_right;
                         }
                     }
-                    return false;
-                });
-                if let Some((index, DiskRegion::Used(used))) = index_to_move {
-                    output.push(DiskRegion::Used(used.clone()));
-                    let remaining = free.len - used.len;
-                    input.remove(index);
-                    if remaining > 0 {
-                        input.push_front(DiskRegion::Free(FreeRegion{len: remaining }))
-                    }
-                } else {
-                    output.push(front.clone())
+                    j += 1;
                 }
             }
         }
-    };
-    return DiskMap {
-        regions: output
-    };
+        if i == 0 {
+            break
+        } else {
+            i -= 1;
+        }
+    }
+    return DiskMap { regions: output};
 }
 
 #[test]
@@ -196,6 +227,7 @@ fn test_compress_advanced() {
     let demo_txt = read_input_file("day9", "demo.txt");
     let demo_input = DiskMap::from_compressed_string(&demo_txt);
     let compacted = compress_advanced(&demo_input);
+    println!("{:?}", compacted);
     assert_eq!(compacted.checksum(), 2858usize);
 }
 

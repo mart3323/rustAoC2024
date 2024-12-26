@@ -136,7 +136,6 @@ impl<'p> ProcessState<'p> {
         while !self.is_done() {
             if let Ok(result) = self.run_tick() {
                 if let Some(c) = result {
-                    println!("{}: {:?}", c, self);
                     stdout.send(c).map_err(|e| e.to_string())?;
                 }
             }
