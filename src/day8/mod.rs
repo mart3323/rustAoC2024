@@ -237,7 +237,97 @@ fn solve_simple(initial_state: &AntennaMap) -> usize {
     unique_antinode_locations
 }
 fn solve_advanced(initial_state: &AntennaMap) -> usize {
-    0
+    let mut antenna_locations_by_frequency: HashMap<Frequency, Vec<Pos>> = HashMap::new();
+    // Find and group up antennas by frequency
+    initial_state.enumerate().for_each(|(pos, cell)| {
+        if let Some(antenna) = cell.antenna {
+            if antenna_locations_by_frequency.contains_key(&antenna) {
+                antenna_locations_by_frequency.get_mut(&antenna).unwrap().push(pos)
+            } else {
+                antenna_locations_by_frequency.insert(antenna, vec![pos]);
+            }
+        }
+    });
+
+    let mut antinodes_map = AntinodesMap {
+        map: Vec::from_iter(initial_state.map.iter().map(|_| 0)),
+        width: initial_state.width,
+        height: initial_state.height,
+    };
+    for (_, positions) in antenna_locations_by_frequency.iter() {
+        positions.iter().for_each(|pos| {
+            positions.iter().for_each(|pos2| {
+                if pos == pos2 {
+                    return
+                }
+                let mut i = 1;
+                let offset = pos.offset_to(&pos2);
+                'repeat_positive:
+                loop {
+                    let antinode = pos.apply_offset_times(&offset, i);
+                    match antinodes_map.update_cell(&antinode, |c| c+1) {
+                        Ok(_) => {} // Registered new antinode
+                        Err(_) => {
+                            break 'repeat_positive;
+                        } // Antinode is off the map so we can stop heading in this direction
+                    }
+                    i += 1;
+                }
+                let mut i = -1;
+                'repeat_negative:
+                loop {
+                    let antinode = pos2.apply_offset_times(&offset, i);
+                    match antinodes_map.update_cell(&antinode, |c| c+1) {
+                        Ok(_) => {} // Registered new antinode
+                        Err(_) => {
+                            break 'repeat_negative;
+                        } // Antinode is off the map so we can stop heading in this direction
+                    }
+                    i -= 1;
+                }
+            })
+        })
+    };
+
+    let unique_antinode_locations = antinodes_map.enumerate().map(|(p,v)| *v)
+        .filter(|v| v > &0usize)
+        .count();
+
+    assert_eq!(antinodes_map.map.len(), initial_state.width * initial_state.height);
+
+    for y in 0..initial_state.height {
+        for x in 0..initial_state.width {
+            let pos = Pos { col: x as isize, row: y as isize };
+            let cell = initial_state.get_cell(&pos).unwrap();
+            let power = *antinodes_map.get_cell(&pos).unwrap();
+            const gray: &str = "\x1b[90m";
+            const green: &str = "\x1b[92m";
+            const yellow: &str = "\x1b[93m";
+            const red: &str = "\x1b[91m";
+            const purple: &str = "\x1b[95m";
+            const reset: &str = "\x1b[0m";
+            match (cell, power) {
+                (Cell{antenna: None}, 0) => print!("{}░{} ", gray, reset),
+                (Cell{antenna: None}, 1) => print!("{}░{} ", green, reset),
+                (Cell{antenna: None}, 2) => print!("{}░{} ", yellow, reset),
+                (Cell{antenna: None}, 3) => print!("{}░{} ", red, reset),
+                (Cell{antenna: None}, _) => print!("{}░{} ", red, reset),
+
+                (Cell{antenna: Some(freq)}, 0) => print!("{freq} "),
+                (Cell{antenna: Some(freq)}, 1) => print!("{}{freq}{} ", green, reset),
+                (Cell{antenna: Some(freq)}, 2) => print!("{}{freq}{} ", yellow, reset),
+                (Cell{antenna: Some(freq)}, 3) => print!("{}{freq}{} ", red, reset),
+                (Cell{antenna: Some(freq)}, _) => print!("{}{freq}{} ", purple, reset),
+
+            }
+        }
+        print!("\n")
+    }
+    println!("Antennas");
+    println!("{}", initial_state);
+    println!("Antinodes");
+    print_numeric(&antinodes_map);
+    unique_antinode_locations
 }
 
 #[test]
@@ -253,7 +343,10 @@ fn test_solve_simple() {
 }
 #[test]
 fn test_solve_advanced() {
-    todo!()
+    let demo_input = parse_file("demo.txt").expect("demo.txt failed to parse");
+    let answer = solve_advanced(&demo_input);
+    assert_eq!(answer, 34);
+
 }
 pub fn part1() -> usize {
     let full_input = parse_file("full.txt").expect("full.txt failed to parse");
