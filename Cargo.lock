@@ -11,6 +11,7 @@ dependencies = [
  "criterion",
  "env_logger",
  "flume",
+ "itertools",
  "log",
  "nom",
  "oneshot",
