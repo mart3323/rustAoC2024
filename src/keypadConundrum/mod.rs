@@ -7,7 +7,7 @@ pub mod simulator;
 pub mod visualiser;
 
 fn shortest(a: String, b: String) -> String {
-    if a.chars().count() < b.chars().count() { a } else { b } 
+    if a.chars().count() < b.chars().count() { a } else { b }
 }
 
 struct DirCache(HashMap<(DirpadKey, DirpadKey), String>);
@@ -40,16 +40,16 @@ impl DirCache {
     }
     // Path to go from A to _ times press _ time and return
     fn sequence1(&self, to: DirpadKey, press_count: usize) -> String {
-        self.leg(DirpadKey::A, to) + 
-            &self.leg(to, to).repeat(press_count-1) + 
+        self.leg(DirpadKey::A, to) +
+            &self.leg(to, to).repeat(press_count-1) +
             &self.leg(to, DirpadKey::A)
     }
     // Path to go from A to _ times press _ and _ times press _ and return
     fn sequence2(&self, to_1: DirpadKey, press_count_1: usize, to_2: DirpadKey, press_count_2: usize) -> String {
-        self.leg(DirpadKey::A, to_1) 
-            + &self.leg(to_1, to_1).repeat(press_count_1 - 1) 
-            + &self.leg(to_1, to_2) 
-            + &self.leg(to_2, to_2).repeat(press_count_2 - 1) 
+        self.leg(DirpadKey::A, to_1)
+            + &self.leg(to_1, to_1).repeat(press_count_1 - 1)
+            + &self.leg(to_1, to_2)
+            + &self.leg(to_2, to_2).repeat(press_count_2 - 1)
             + &self.leg(to_2, DirpadKey::A)
     }
     fn sequence2_unordered(&self, to_1: DirpadKey, press_count_1: usize, to_2: DirpadKey, press_count_2: usize) -> String {
@@ -66,7 +66,9 @@ impl DirCache {
             for end in options {
                 out.0.insert((start,end), match (start, end) {
                     // Left
-                    (Down, Left)|(Right,Down)|(A,Up) => self.sequence1(Left, 1),
+                    (Down, Left)|
+                    (Right,Down)|
+                    (A,Up) => self.sequence1(Left, 1),
                     // Left Left
                     (Right, Left) => self.sequence1(Left, 2),
                     // Down Left (ordered)
@@ -78,55 +80,46 @@ impl DirCache {
                     // Up
                     (Down, Up)|(Right,A) => self.sequence1(Up, 1),
                     // Right
-                    (Left,Down)|(Down,Right)|(Up,A) => self.sequence1(Right, 1),
+                    (Left,Down)|
+                    (Down,Right)|
+                    (Up,A) => self.sequence1(Right, 1),
                     // Right Right
                     (Left, Right) => self.sequence1(Right, 2),
                     // Right Up (ordered)
                     (Left, Up) => self.sequence2(Right, 1, Up, 1),
                     // Right Up (unordered)
-                    (Down, A) => shortest(
-                        self.sequence2(Right, 1, Up, 1),
-                        self.sequence2(Up, 1, Right, 1),
-                    ),
+                    (Down, A) => self.sequence2_unordered(Right, 1, Up, 1),
                     // Right Right Up
                     (Left, A) => self.sequence2(Right, 2, Up, 1),
                     // Down
-                    (Up,Down)|(A,Right) => self.sequence1(Down, 1),
+                    (Up,Down)|
+                    (A,Right) => self.sequence1(Down, 1),
                     // Right down
                     (Up, Right) => self.sequence2_unordered(Right, 1, Down, 1),
                     // Left up
-                    (Right, Up) => shortest(
-                        self.sequence2(Left, 1, Up, 1),
-                        self.sequence2(Up, 1, Left, 1),
-                    ),
+                    (Right, Up) => self.sequence2_unordered(Left, 1, Up, 1),
                     (a, b) if a == b => String::from("A"),
-                    (x,y) => panic!("Matchh was not exhaustive, failed to cover {:?} to {:?}", &x, &y)
+                    (x,y) => panic!("Match was not exhaustive, failed to cover {:?} to {:?}", &x, &y)
                 });
-                
+
             }
         };
         return out;
     }
-    
+
     fn path_for_code(&self, code: &Vec<NumpadKey>) -> String {
         use DirpadKey::*;
-        
+
         let mut out = String::new();
         let mut pos = NumpadKey::A;
         for &key in code {
             fn pos_of(k: &NumpadKey) -> (i8, i8) {
+                use NumpadKey::*;
                 match k {
-                    NumpadKey::A => (2,3),
-                    NumpadKey::Zero => (1,3),
-                    NumpadKey::One => (0,2),
-                    NumpadKey::Two => (1,2),
-                    NumpadKey::Three => (2,2),
-                    NumpadKey::Four => (0,1),
-                    NumpadKey::Five => (1,1),
-                    NumpadKey::Six => (2,1),
-                    NumpadKey::Seven => (0,0),
-                    NumpadKey::Eight => (1,0),
-                    NumpadKey::Nine => (2,0),
+                    Seven => (0,0), Eight => (1,0), Nine  => (2,0),
+                    Four  => (0,1), Five  => (1,1), Six   => (2,1),
+                    One   => (0,2), Two   => (1,2), Three => (2,2),
+                                     Zero => (1,3),     A => (2,3),
                 }
             }
             let start = pos_of(&pos);
@@ -137,6 +130,9 @@ impl DirCache {
             if pos == NumpadKey::Zero && dx < 0 || pos == NumpadKey::A && dx == -2 {
                 assert!(dy < 0);
                 out += &self.sequence2(Up, -dy as usize, Left, -dx as usize)
+            } else if key == NumpadKey::Zero && dx > 0 || key == NumpadKey::A && dx == 2 {
+                assert!(dy > 0);
+                out += &self.sequence2(Right, dx as usize, Down, dy as usize)
             } else if dx < 0 && dy < 0 {
                 out += &self.sequence2_unordered(Up, -dy as usize, Left, -dx as usize)
             } else if 0 < dx && dy < 0 {
@@ -215,9 +211,14 @@ fn test_part_1() {
     for i in 0..5 {
         assert_eq!(solver_3.path_for_code(&parse_code(DEMO_INPUT[i]).expect("Code to parse")).chars().count(), expect[i].chars().count());
     }
+    let solver = DirCache::default();
+    let path = solver.next().path_for_code(&parse_code("980A").expect("Code to be valid"));
+    println!("980A: {:?}", path);
     assert_eq!(solve_part_1(3, DEMO_INPUT.to_vec()), 126384);
     // Incorrect submission
-    assert!(156544 < solve_part_1(3, FULL_INPUT.to_vec()));
+    let result = solve_part_1(3, FULL_INPUT.to_vec());
+    println!("full compl: {}", result);
+    assert!(156544 < result);
 }
 pub fn part1() -> usize {
     let mut total_complexity = 0;
@@ -231,7 +232,19 @@ pub fn part1() -> usize {
     return total_complexity
 }
 pub fn part2() -> usize {
-    todo!()
+    let mut total_complexity = 0;
+    let mut solver = DirCache::default();
+    for i in 0..25 {
+        solver = solver.next();
+    }
+    let solver_26 = solver;
+    for code in FULL_INPUT {
+        let value: usize = code.trim_start_matches("0").trim_end_matches("A").parse().expect("Code to be valid");
+        let code = parse_code(code).expect("Code to be valid");
+        let length: usize = solver_26.path_for_code(&code).chars().count();
+        total_complexity += value * length;
+    }
+    return total_complexity
 }
 
 fn notes() {
@@ -241,11 +254,11 @@ fn notes() {
     //         HOWEVER: for any one press on the current numpad, the previous numpad may have to make multiple presses
     //                  without resetting in the meantime
     //                  For example, consider the following situation where we want to return to numpad A
-    
+
     // TODO: Theory
     //       Assumption: A robot will never need to move in two opposite directions between A presses
     //                   because if it does, it would be more optimal to skip both the movements
-    //       Therefore: we only need the costs for movements that don't contain opposites (DDD, DDR, but not DRU) 
+    //       Therefore: we only need the costs for movements that don't contain opposites (DDD, DDR, but not DRU)
     //       Plan:
     //         For each layer of keypad, starting from the first, precalculate the cost of pressing each of the following combinations
     //         L, R, U, D, UR, DR, DL, UL (for diagonals, test both orders)
@@ -270,13 +283,13 @@ fn notes() {
         //  After some moves
         //                       ┌─┬─┬─┐ Movement cost: nr of spaces + 6 if contains left + 4 if contains down or up right + 2 if contains right or up
         //                       │ │ │ │ (with return trip)
-        //                       ├─┼─┼─┤ Movement cost 2: nr of spaces + 6+4 if contains left and/or down + 6+2 if contains down or up + 4+2 if contains right 
-        //                       │ │ │ │ 
+        //                       ├─┼─┼─┤ Movement cost 2: nr of spaces + 6+4 if contains left and/or down + 6+2 if contains down or up + 4+2 if contains right
+        //                       │ │ │ │
         //    ┌─┬─┐  ┌─┬─┐  ┌─┬─┐├─┼─┼─┤ Cost   A    LD/LU          RD           RU        U         R
         //    │ │A│  │ │ │  │ │A││ │ │9│        A    nA*6+nLD+nRU   nA*
-        //  ┌─┼─┼─┤┌─┼─┼─┤┌─┼─┼─┤└─┼─┼─┤ 
-        //  │ │ │ ││ │↓│ ││ │ │ │  │ │ │ 
-        //  └─┴─┴─┘└─┴─┴─┘└─┴─┴─┘  └─┴─┘ 
+        //  ┌─┼─┼─┤┌─┼─┼─┤┌─┼─┼─┤└─┼─┼─┤
+        //  │ │ │ ││ │↓│ ││ │ │ │  │ │ │
+        //  └─┴─┴─┘└─┴─┴─┘└─┴─┴─┘  └─┴─┘
         //                       ┌─┬─┬─┐
         //                       │ │ │ │
         //                       ├─┼─┼─┤
@@ -322,7 +335,7 @@ fn notes() {
         //    │ │ │  │ │ │  │ │ ││ │ │9│
         //  ┌─┼─┼─┤┌─┼─┼─┤┌─┼─┼─┤└─┼─┼─┤
         //  │ │↓│ ││←│ │ ││ │↓│ │  │ │ │
-        //  └─┴─┴─┘└─┴─┴─┘└─┴─┴─┘  └─┴─┘       
+        //  └─┴─┴─┘└─┴─┴─┘└─┴─┴─┘  └─┴─┘
         //                       ┌─┬─┬─┐
         //                       │ │ │ │
         //                       ├─┼─┼─┤
@@ -331,7 +344,7 @@ fn notes() {
         //    │ │ │  │ │ │  │ │ ││ │ │9│
         //  ┌─┼─┼─┤┌─┼─┼─┤┌─┼─┼─┤└─┼─┼─┤
         //  │ │ │→││ │↓│ ││ │↓│ │  │ │ │
-        //  └─┴─┴─┘└─┴─┴─┘└─┴─┴─┘  └─┴─┘       
+        //  └─┴─┴─┘└─┴─┴─┘└─┴─┴─┘  └─┴─┘
         //                       ┌─┬─┬─┐
         //                       │ │ │ │
         //                       ├─┼─┼─┤
@@ -340,7 +353,7 @@ fn notes() {
         //    │ │ │  │ │ │  │ │ ││ │ │9│
         //  ┌─┼─┼─┤┌─┼─┼─┤┌─┼─┼─┤└─┼─┼─┤
         //  │ │ │→││ │ │→││ │↓│ │  │ │ │
-        //  └─┴─┴─┘└─┴─┴─┘└─┴─┴─┘  └─┴─┘       
+        //  └─┴─┴─┘└─┴─┴─┘└─┴─┴─┘  └─┴─┘
         //                       ┌─┬─┬─┐
         //                       │ │ │ │
         //                       ├─┼─┼─┤
@@ -349,7 +362,7 @@ fn notes() {
         //    │ │A│  │ │ │  │ │ ││ │ │9│
         //  ┌─┼─┼─┤┌─┼─┼─┤┌─┼─┼─┤└─┼─┼─┤
         //  │ │ │ ││ │ │→││ │↓│ │  │ │ │
-        //  └─┴─┴─┘└─┴─┴─┘└─┴─┴─┘  └─┴─┘       
+        //  └─┴─┴─┘└─┴─┴─┘└─┴─┴─┘  └─┴─┘
         //                       ┌─┬─┬─┐
         //                       │ │ │ │
         //                       ├─┼─┼─┤
@@ -358,7 +371,7 @@ fn notes() {
         //    │↑│ │  │ │ │  │ │ ││ │ │9│
         //  ┌─┼─┼─┤┌─┼─┼─┤┌─┼─┼─┤└─┼─┼─┤
         //  │ │ │ ││ │ │→││ │↓│ │  │ │ │
-        //  └─┴─┴─┘└─┴─┴─┘└─┴─┴─┘  └─┴─┘       
+        //  └─┴─┴─┘└─┴─┴─┘└─┴─┴─┘  └─┴─┘
         //                       ┌─┬─┬─┐
         //                       │ │ │ │
         //                       ├─┼─┼─┤
@@ -367,7 +380,7 @@ fn notes() {
         //    │↑│ │  │ │A│  │ │ ││ │ │9│
         //  ┌─┼─┼─┤┌─┼─┼─┤┌─┼─┼─┤└─┼─┼─┤
         //  │ │ │ ││ │ │ ││ │↓│ │  │ │ │
-        //  └─┴─┴─┘└─┴─┴─┘└─┴─┴─┘  └─┴─┘      
+        //  └─┴─┴─┘└─┴─┴─┘└─┴─┴─┘  └─┴─┘
         //                       ┌─┬─┬─┐
         //                       │ │ │ │
         //                       ├─┼─┼─┤
@@ -376,7 +389,7 @@ fn notes() {
         //    │ │A│  │ │A│  │ │ ││ │ │9│
         //  ┌─┼─┼─┤┌─┼─┼─┤┌─┼─┼─┤└─┼─┼─┤
         //  │ │ │ ││ │ │ ││ │↓│ │  │ │ │
-        //  └─┴─┴─┘└─┴─┴─┘└─┴─┴─┘  └─┴─┘  
+        //  └─┴─┴─┘└─┴─┴─┘└─┴─┴─┘  └─┴─┘
         //                       ┌─┬─┬─┐
         //                       │ │ │ │
         //                       ├─┼─┼─┤
