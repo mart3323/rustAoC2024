@@ -1,6 +1,6 @@
 use crate::keypadConundrum::simulator::{DirpadKey, DirpadRobot, NumpadKey, NumpadRobot, Robot};
 
-trait PrintRecursive {
+pub trait PrintRecursive {
     fn print_self(&self) -> String;
     fn next(&self) -> Option<impl PrintRecursive>;
     fn print_recursive(&self) -> String {
@@ -82,9 +82,9 @@ impl<NextBot: PrintRecursive+Robot+Clone> PrintRecursive for DirpadRobot<NextBot
         let except = match self.key {
             DirpadKey::A => 'A',
             DirpadKey::Up => '↑',
-            DirpadKey::Right => '←',
+            DirpadKey::Left => '←',
             DirpadKey::Down => '↓',
-            DirpadKey::Left => '→',
+            DirpadKey::Right => '→',
         };
         template.chars().map(|c|
             if replace.contains(&c) && c != except {' '} else {c}

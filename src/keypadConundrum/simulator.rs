@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-trait Layout<T> {
+pub trait Layout<T> {
     fn left(&self) -> Option<T>;
     fn right(&self) -> Option<T>;
     fn up(&self) -> Option<T>;
