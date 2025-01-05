@@ -42,5 +42,5 @@ pub fn part1() -> usize {
 }
 
 pub fn part2() -> usize {
-    todo!();
+    return 0
 }

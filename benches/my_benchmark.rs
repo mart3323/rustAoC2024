@@ -1,100 +1,146 @@
-use criterion::{criterion_group, criterion_main, Criterion};
+use std::time::Duration;
+use divan;
 
-fn bench_day00(c: &mut Criterion) {
-    c.bench_function("day 0 part1", |b| b.iter(day00::part1));
-    c.bench_function("day 0 part2", |b| b.iter(day00::part2));
-}
-fn bench_day01(c: &mut Criterion) {
-    c.bench_function("day 1 part1", |b| b.iter(day01::part1));
-    c.bench_function("day 1 part2", |b| b.iter(day01::part2));
-}
-fn bench_day02(c: &mut Criterion) {
-    c.bench_function("day 2 part1", |b| b.iter(day02::part1));
-    c.bench_function("day 2 part2", |b| b.iter(day02::part2));
-}
-fn bench_day03(c: &mut Criterion) {
-    c.bench_function("day 3 part1", |b| b.iter(day03::part1));
-    c.bench_function("day 3 part2", |b| b.iter(day03::part2));
-}
-fn bench_day04(c: &mut Criterion) {
-    c.bench_function("day 4 part1", |b| b.iter(day04::part1));
-    c.bench_function("day 4 part2", |b| b.iter(day04::part2));
-}
-fn bench_day05(c: &mut Criterion) {
-    c.bench_function("day 5 part1", |b| b.iter(day05::part1));
-    c.bench_function("day 5 part2", |b| b.iter(day05::part2));
-}
-fn bench_day06(c: &mut Criterion) {
-    c.bench_function("day 6 part1", |b| b.iter(day06::part1));
-    c.bench_function("day 6 part2", |b| b.iter(day06::part2));
-}
-fn bench_day07(c: &mut Criterion) {
-    c.bench_function("day 7 part1", |b| b.iter(day07::part1));
-    c.bench_function("day 7 part2", |b| b.iter(day07::part2));
-}
-fn bench_day08(c: &mut Criterion) {
-    c.bench_function("day 8 part1", |b| b.iter(day08::part1));
-    c.bench_function("day 8 part2", |b| b.iter(day08::part2));
-}
-fn bench_day09(c: &mut Criterion) {
-    c.bench_function("day 9 part1", |b| b.iter(day09::part1));
-    c.bench_function("day 9 part2", |b| b.iter(day09::part2));
-}
-fn bench_day10(c: &mut Criterion) {
-    c.bench_function("day 10 part1", |b| b.iter(day10::part1));
-    c.bench_function("day 10 part2", |b| b.iter(day10::part2));
+#[divan::bench_group(max_time = Duration::from_secs(5))]
+mod my_benchmark {
+
+    #[divan::bench_group()]
+    mod day00 {
+        #[divan::bench] fn part1() { day00::part1(); }
+        #[divan::bench] fn part2() { day00::part2(); }
+    }
+    #[divan::bench_group()]
+    mod day01 {
+        #[divan::bench] fn part1() { day01::part1(); }
+        #[divan::bench] fn part2() { day01::part2(); }
+    }
+    #[divan::bench_group()]
+    mod day02 {
+        #[divan::bench] fn part1() { day02::part1(); }
+        #[divan::bench] fn part2() { day02::part2(); }
+    }
+    #[divan::bench_group()]
+    mod day03 {
+        #[divan::bench] fn part1() { day03::part1(); }
+        #[divan::bench] fn part2() { day03::part2(); }
+    }
+    #[divan::bench_group()]
+    mod day04 {
+        #[divan::bench] fn part1() { day04::part1(); }
+        #[divan::bench] fn part2() { day04::part2(); }
+    }
+    #[divan::bench_group()]
+    mod day05 {
+        #[divan::bench] fn part1() { day05::part1(); }
+        #[divan::bench] fn part2() { day05::part2(); }
+    }
+    #[divan::bench_group()]
+    mod day06 {
+        #[divan::bench] fn part1() { day06::part1(); }
+        #[divan::bench] fn part2() { day06::part2(); }
+    }
+    #[divan::bench_group()]
+    mod day07 {
+        #[divan::bench] fn part1() { day07::part1(); }
+        #[divan::bench] fn part2() { day07::part2(); }
+    }
+    #[divan::bench_group()]
+    mod day08 {
+        #[divan::bench] fn part1() { day08::part1(); }
+        #[divan::bench] fn part2() { day08::part2(); }
+    }
+    #[divan::bench_group()]
+    mod day09 {
+        #[divan::bench] fn part1() { day09::part1(); }
+        #[divan::bench] fn part2() { day09::part2(); }
+    }
+    #[divan::bench_group()]
+    mod day10 {
+        #[divan::bench] fn part1() { day10::part1(); }
+        #[divan::bench] fn part2() { day10::part2(); }
+    }
+    #[divan::bench_group()]
+    mod day11 {
+        #[divan::bench] fn part1() { day11::part1(); }
+        #[divan::bench] fn part2() { day11::part2(); }
+    }
+    #[divan::bench_group()]
+    mod day12 {
+        #[divan::bench] fn part1() { day12::part1(); }
+        #[divan::bench] fn part2() { day12::part2(); }
+    }
+    #[divan::bench_group()]
+    mod day13 {
+        #[divan::bench] fn part1() { day13::part1(); }
+        #[divan::bench] fn part2() { day13::part2(); }
+    }
+    #[divan::bench_group()]
+    mod day14 {
+        #[divan::bench] fn part1() { day14::part1(); }
+        #[divan::bench] fn part2() { day14::part2(); }
+    }
+    #[divan::bench_group()]
+    mod day15 {
+        #[divan::bench] fn part1() { day15::part1(); }
+        #[divan::bench] fn part2() { day15::part2(); }
+    }
+    #[divan::bench_group()]
+    mod day16 {
+        #[divan::bench] fn part1() { day16::part1(); }
+        #[divan::bench] fn part2() { day16::part2(); }
+    }
+    #[divan::bench_group()]
+    mod day17 {
+        #[divan::bench] fn part1() { day17::part1(); }
+        #[divan::bench] fn part2() { day17::part2(); }
+    }
+    #[divan::bench_group()]
+    mod day18 {
+        #[divan::bench] fn part1() { day18::part1(); }
+        #[divan::bench] fn part2() { day18::part2(); }
+    }
+    #[divan::bench_group()]
+    mod day19 {
+        #[divan::bench] fn part1() { day19::part1(); }
+        #[divan::bench] fn part2() { day19::part2(); }
+    }
+    #[divan::bench_group()]
+    mod day20 {
+        #[divan::bench] fn part1() { day20::part1(); }
+        #[divan::bench] fn part2() { day20::part2(); }
+    }
+    #[divan::bench_group()]
+    mod day21 {
+        #[divan::bench] fn part1() { day21::part1(); }
+        #[divan::bench] fn part2() { day21::part2(); }
+    }
+    #[divan::bench_group()]
+    mod day22 {
+        #[divan::bench] fn part1() { day22::part1(); }
+        #[divan::bench] fn part2() { day22::part2(); }
+    }
+    #[divan::bench_group()]
+    mod day23 {
+        #[divan::bench] fn part1() { day23::part1(); }
+        #[divan::bench] fn part2() { day23::part2(); }
+    }
+    #[divan::bench_group()]
+    mod day24 {
+        #[divan::bench] fn part1() { day24::part1(); }
+        #[ignore = "Not implemented yet"]
+        #[divan::bench] fn part2() { day24::part2(); }
+    }
+    #[divan::bench_group()]
+    mod day25 {
+        #[divan::bench] fn part1() { day25::part1(); }
+        #[ignore = "No code"]
+        #[divan::bench] fn part2() { day25::part2(); }
+    }
+    
+    
 }
 
-fn bench_day11(c: &mut Criterion) {
-    c.bench_function("day 11 part1", |b| b.iter(day11::part1));
-    c.bench_function("day 11 part2", |b| b.iter(day11::part2));
+fn main() {
+    // Run registered benchmarks.
+    divan::main();
 }
-fn bench_day12(c: &mut Criterion) {
-    c.bench_function("day 12 part1", |b| b.iter(day12::part1));
-    c.bench_function("day 12 part2", |b| b.iter(day12::part2));
-}
-fn bench_day13(c: &mut Criterion) {
-    c.bench_function("day 13 part1", |b| b.iter(day13::part1));
-    c.bench_function("day 13 part2", |b| b.iter(day13::part2));
-}
-fn bench_day15(c: &mut Criterion) {
-    c.bench_function("day 15 part1", |b| b.iter(day15::part1));
-    c.bench_function("day 15 part2", |b| b.iter(day15::part2));
-}
-fn bench_day16(c: &mut Criterion) {
-    c.bench_function("day 16 part1", |b| b.iter(day16::part1));
-    c.bench_function("day 16 part2", |b| b.iter(day16::part2));
-}
-fn bench_day17(c: &mut Criterion) {
-    c.bench_function("day 17 part1", |b| b.iter(day17::part1));
-    // c.bench_function("day 17 part2", |b| b.iter(day17::part2));
-}
-fn bench_day18(c: &mut Criterion) {
-    c.bench_function("day 18 part1", |b| b.iter(day18::part1));
-    c.bench_function("day 18 part2", |b| b.iter(day18::part2));
-}
-fn bench_day19(c: &mut Criterion) {
-    c.bench_function("day 19 part1", |b| b.iter(day19::part1));
-    c.bench_function("day 19 part2", |b| b.iter(day19::part2));
-}
-fn bench_day20(c: &mut Criterion) {
-    c.bench_function("day 20 part1", |b| b.iter(day20::part1));
-    c.bench_function("day 20 part2", |b| b.iter(day20::part2));
-}
-fn bench_day21(c: &mut Criterion) {
-    c.bench_function("day 21 part1", |b| b.iter(day21::part1));
-    c.bench_function("day 21 part2", |b| b.iter(day21::part2));
-}
-fn bench_day22(c: &mut Criterion) {
-    c.bench_function("day 22 part1", |b| b.iter(day22::part1));
-    c.bench_function("day 22 part2", |b| b.iter(day22::part2));
-}
-
-fn bench_day24(c: &mut Criterion) {
-    c.bench_function("day 24 part1", |b| b.iter(day24::part1));
-    c.bench_function("day 24 part2", |b| b.iter(day24::part2));
-}
-
-// criterion_group!(benches, day0, day1, day2, day3, day4, day5, day6, day7, day8, day9, day10, day11, day12, day13);
-criterion_group!(benches, bench_day00);
-criterion_main!(benches);

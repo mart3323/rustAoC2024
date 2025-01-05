@@ -6,7 +6,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dev-dependencies]
-criterion = "0.5.1"
+divan = "0.1.17"
 
 [dependencies]
 day00 = { path = "src/day00 - Project setup" }
@@ -36,20 +36,8 @@ day23 = { path = "src/day23 - Lan Party" }
 day24 = { path = "src/day24 - Crossed Wires" }
 day25 = { path = "src/day25 - Code Chronicle" }
 
-nom = "8.0.0-alpha2"
-log = "0.4.22"
-pathfinding = "4.12.0"
-cached = "0.54.0"
-bytemuck = "1.21.0"
-flume = "0.11.1"
-env_logger = "0.11.6"
-wasm-bindgen-futures = "0.4.49"
-wgpu = "22.0"
-pollster = "0.4.0"
-oneshot = "0.1.8"
-itertools = "0.10.5"
-
 [[bench]]
 name = "my_benchmark"
 harness = false
 path="benches/my_benchmark.rs"
+
