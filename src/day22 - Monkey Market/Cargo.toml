@@ -1,0 +1,15 @@
+[package]
+name = "day22"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+path = "mod.rs"
+
+[dependencies]
+utils = { path = "../utils" }
+flume = "0.11.1"
+wgpu = "23.0.1"
+pollster = "0.4.0"
+bytemuck = "1.21.0"
+env_logger = "0.11.6"

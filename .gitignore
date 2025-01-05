@@ -1,4 +1,4 @@
 /target
 .jj
-!src/day0/*.txt
 src/*/*.txt
+src/day14 - Restroom Redoubt/images
