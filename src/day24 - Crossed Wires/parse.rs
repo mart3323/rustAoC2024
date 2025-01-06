@@ -5,6 +5,29 @@ pub enum Gate {
     AND(String, String, String),
     OR(String, String, String)
 }
+impl Gate {
+    pub fn inputs(&self) -> [&str; 2] {
+        match &self {
+            Gate::XOR(a, b, _) => [a,b],
+            Gate::AND(a, b, _) => [a,b],
+            Gate::OR(a, b, _) => [a,b],
+        }
+    }
+    pub fn output(&self) -> &str {
+        match &self {
+            Gate::XOR(_, _, out) => out,
+            Gate::AND(_, _, out) => out,
+            Gate::OR(_, _, out) => out,
+        }
+    }
+    pub fn process(&self, a: bool, b: bool) -> bool {
+        match self {
+            Gate::XOR(_, _, _) => a ^ b,
+            Gate::AND(_, _, _) => a && b,
+            Gate::OR(_, _, _) => a || b
+        }
+    }
+}
 pub struct Network {
     pub initial_values: Vec<(String, bool)>,
     pub gates: Vec<Gate>

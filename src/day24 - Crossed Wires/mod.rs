@@ -1,12 +1,16 @@
 mod parse;
 
 use crate::parse::{parse_network, Gate};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::future::Future;
+use std::rc::Rc;
 use std::sync::{Arc, RwLock};
 use std::task::Waker;
 use std::thread;
+use nom::bits::bits;
 use utils::read_input_file;
+use itertools;
+use itertools::Itertools;
 
 const DAY: &str = "day24 - Crossed Wires";
 
@@ -131,6 +135,153 @@ pub fn part1() -> usize {
         });
     return value;
 }
+
+#[test]
+pub fn test_part2() {
+    println!("{:?}", std::env::current_dir());
+    let network = parse_network(&read_input_file(DAY, "demo2.txt")).expect("Failed to parse network").1;
+
+
+    let bits_of_output = (0..).find(|i| {
+        !network.gates.iter().any(|gate| gate.output() == format!("z{:0>2}", i))
+    }).expect("Found the first non-existing gate");
+
+    struct SearchState {
+        prev_layer_overflow_bits: Vec<String>,
+        swaps: Vec<(String, String)>
+    }
+    fn next_states(gates: Vec<Gate>, state: SearchState, bit: usize) -> Vec<SearchState> {
+        let out = vec!();
+        let name_a = format!("a{:0>2}", bit);
+        let name_b = format!("b{:0>2}", bit);
+        let name_z = format!("z{:0>2}", bit);
+        
+        for swaps in state.swaps.len()..=8 {
+            let swaps = 8 - swaps;
+            let swap_options: Vec<Vec<[&Gate;2]>> = gates.iter()
+                .array_combinations::<2>()
+                .combinations(swaps)
+                .collect();
+            
+            for swaps in swap_options {
+                [true,false].iter().zip([true, false]).zip([true, false]).all(|((a,b),overflow)| {
+                    if overflow && state.prev_layer_overflow_bits.is_empty() {
+                        // Do not check combos with overflow bit true if the previous layer has no overflow
+                        //   We do not consider states with no overflow as valid, so this edge case is solely for the initial state
+                        return true;
+                    }
+                    let mut wires = HashMap::new();
+                    wires.insert("false", false);
+                    wires.insert(&name_a, a);
+                    wires.insert(&name_b, b);
+                    state.prev_layer_overflow_bits.iter().for_each(|name| {
+                        wires.insert(name, overflow);
+                    });
+
+                    'propagate_signal: loop {
+                        let mut changed = false;
+                        for gate in &gates {
+                            let [a,b] = gate.inputs();
+                            let o = gate.output();
+                            if !wires.contains_key(o) {
+                                if let (Some(a), Some(b)) = (wires.get(a), wires.get(b)) {
+                                    let mut o = o;
+                                    for [&swap_a, &swap_b] in &swaps {
+                                        match (swap_a, swap_b) {
+                                            (from, to) if from.output() == o => {
+                                                o = to.output()
+                                            }
+                                            (to, from) if from.output() == o => {
+                                                o = to.output()
+                                            },
+                                            _ => {}
+                                        }
+                                    }
+                                    let o = o;
+                                    wires.insert(o, gate.process(*a, *b));
+                                    changed = true;
+                                }
+                            }
+                        }
+                        if !changed {
+                            break;
+                        }
+                    }
+
+                    let expect_carry = [*a,b,overflow].iter().filter(|bit| **bit).count();
+                    if wires.get(name_z.as_str()).is_some_and(|v| *v == a ^ b ^ overflow) {
+                        let overflow = wires.into_iter().filter_map(|(name,value)| {
+                            todo!()
+                        });
+                    }
+                    todo!()
+                    
+                    // TODO: Only take the next state if
+                    //       The output bit is correct
+                    //       There is at least one bit acting like an overflow bit OR we are the last bit
+                    //       All of the chosen swaps have an output (gates that don't participate in this layer should not predictively be swapped, they would have swapped already if lower, or will get swapped in a later iteration if higher
+                });
+            }
+        }
+        
+        return out;
+    }
+    let mut search_state = vec!(SearchState{prev_layer_overflow_bits: vec!(String::from("false")), swaps: vec!()});
+    
+    for bit in 0..bits_of_output {
+        println!("Processing {}", bit);
+        let next_search_state: Vec<SearchState> = vec!();
+        for prev_state in search_state {
+            for a in [true, false] {
+                for b in [true, false] {
+                    for overflow in [true, false] {
+                        let mut wires: HashMap<String, bool> = HashMap::new();
+                        // Inject overflow and a/b bits
+                        wires.insert(prev_state.prev_layer_overflow_bit.clone(), overflow);
+                        wires.insert(format!("a{:0>2}", bit), a);
+                        wires.insert(format!("b{:0>2}", bit), b);
+                        // Simulate gates
+                        'run_gates_until_nothing_changes: loop {
+                            let mut changed = false;
+                            for gate in &network.gates {
+                                let [a, b] = gate.inputs();
+                                if let (Some(a), Some(b)) = (wires.get(a), wires.get(b)) {
+                                    wires.insert(gate.output().to_owned(), gate.process(*a, *b));
+                                    changed = true;
+                                }
+                            }
+                            if !changed {
+                                break;
+                            }
+                        }
+                        // Test for correct output
+                        let (sum, carry) = match a as u8 + b as u8 + overflow as u8 {
+                            0 => (false, false),
+                            1 => (true, false),
+                            2 => (false, true),
+                            _ => panic!("This should never happen"),
+                        };
+                        if wires.get(format!("z{:0>2}", bit)).is_some_and(|v| *v == sum) {
+                            let overflow_wires: Vec<String> = wires.iter().filter(|k, v| *v == carry).collect();
+                        }
+                    }
+                }
+            }
+        }
+        search_state = next_search_state
+        // TODO: Need a new simulation method which can handle partial inputs
+        //       it should either
+        //         a: Know the difference between "Value not yet known" and "Value is unknown"
+        //            (in that case i feed explicit "unknown" into all other inputs bits)
+        //            .
+        //         b: Instead of threads, propagate the changes directly, so we know we are done
+        //            when we process the last gate and there is no other gate connected to its output,
+        //            or the last gate doesn't get processed because it only has 1 input
+        //
+        //  Maybe try building it with Rcs
+    }
+    println!("{:?}", bits_of_output);
+}
 pub fn part2() -> usize {
     // Note: Reminder, the network should ADD the binary numbers
     //       (I keep incorrectly remembering that it's doing a bitwise AND or something)
@@ -171,6 +322,6 @@ pub fn part2() -> usize {
     //       Choose j pairs of wires, which have different signals, and test the network with those pairs swapped.
     //         Add any pairs which make the network valid to the current search
     //     Note: Print the current size of the search space at each step to verify it's not blowing up
-    //
+
     todo!()
 }

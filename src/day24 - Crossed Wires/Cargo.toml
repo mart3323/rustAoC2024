@@ -9,3 +9,4 @@ path = "mod.rs"
 [dependencies]
 utils = { path = "../utils" }
 nom = "8.0.0-alpha2"
+itertools = "0.14.0"

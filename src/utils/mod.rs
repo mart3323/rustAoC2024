@@ -16,6 +16,9 @@ pub struct InputFiles {
     pub full: String,
 }
 pub fn read_input_file(day: &str, name: &str) -> String {
+    while std::env::current_dir().unwrap().to_str().expect("Parsing path").contains("src") {
+        std::env::set_current_dir(std::env::current_dir().unwrap().parent().unwrap()).unwrap()
+    }
     read_file(Path::new("src").join(day).join(name).as_path())
 }
 pub fn read_input_files(day: &str) -> InputFiles{
