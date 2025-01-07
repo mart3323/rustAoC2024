@@ -141,59 +141,71 @@ pub fn test_part2() {
     println!("{:?}", std::env::current_dir());
     let network = parse_network(&read_input_file(DAY, "demo2.txt")).expect("Failed to parse network").1;
 
+    // Note: Problem - What is being swapped is the output of an individual gate, NOT THE WHOLE WIRE
+    //       So i MUST NOT be swapping wires, instead i need a unique reference to reach gate
+    // TODO: Solution - Create unique IDs for each gate *OR* use something like an Rc<> to create comparable pointers to the same gate
 
     let bits_of_output = (0..).find(|i| {
         !network.gates.iter().any(|gate| gate.output() == format!("z{:0>2}", i))
     }).expect("Found the first non-existing gate");
 
     struct SearchState {
-        prev_layer_overflow_bits: Vec<String>,
-        swaps: Vec<(String, String)>
+        prev_layer_overflow_wires: Vec<String>,
+        swaps: Vec<[String; 2]>
     }
     fn next_states(gates: Vec<Gate>, state: SearchState, bit: usize) -> Vec<SearchState> {
-        let out = vec!();
         let name_a = format!("a{:0>2}", bit);
         let name_b = format!("b{:0>2}", bit);
         let name_z = format!("z{:0>2}", bit);
-        
-        for swaps in state.swaps.len()..=8 {
-            let swaps = 8 - swaps;
-            let swap_options: Vec<Vec<[&Gate;2]>> = gates.iter()
-                .array_combinations::<2>()
-                .combinations(swaps)
-                .collect();
-            
-            for swaps in swap_options {
-                [true,false].iter().zip([true, false]).zip([true, false]).all(|((a,b),overflow)| {
-                    if overflow && state.prev_layer_overflow_bits.is_empty() {
+
+        let nextStates: Vec<SearchState> = (state.swaps.len()..=8)
+            .flat_map(|totalSwaps| {
+                let swaps = 8 - totalSwaps;
+                let swap_options: Vec<Vec<[String; 2]>> = gates.iter()
+                    .array_combinations::<2>()
+                    .combinations(swaps)
+                    .collect();
+                return swap_options;
+            })
+            .map(|swaps| {
+                /// Wires which, as far as tested so far, could potentially be valid overflow signals
+                /// By the end of the loop this should only hold wires that *are* valid overflow signals.
+                let mut candidate_overflow_wires: HashSet<&str> = gates.iter().map(|gate| gate.output()).collect();
+                let is_valid = [true, false].iter().zip([true, false]).zip([true, false]).all(|((a, b), overflow)| {
+                    if overflow && state.prev_layer_overflow_wires.is_empty() {
                         // Do not check combos with overflow bit true if the previous layer has no overflow
                         //   We do not consider states with no overflow as valid, so this edge case is solely for the initial state
                         return true;
                     }
                     let mut wires = HashMap::new();
                     wires.insert("false", false);
-                    wires.insert(&name_a, a);
+                    wires.insert(&name_a, *a);
                     wires.insert(&name_b, b);
-                    state.prev_layer_overflow_bits.iter().for_each(|name| {
+                    state.prev_layer_overflow_wires.iter().for_each(|name| {
                         wires.insert(name, overflow);
                     });
 
                     'propagate_signal: loop {
                         let mut changed = false;
                         for gate in &gates {
-                            let [a,b] = gate.inputs();
+                            let [a, b] = gate.inputs();
                             let o = gate.output();
                             if !wires.contains_key(o) {
                                 if let (Some(a), Some(b)) = (wires.get(a), wires.get(b)) {
                                     let mut o = o;
-                                    for [&swap_a, &swap_b] in &swaps {
+                                    for (swap_a, swap_b) in state.swaps {
                                         match (swap_a, swap_b) {
-                                            (from, to) if from.output() == o => {
+                                            (from, to)|(to,from) if from == o => {
+                                                o = &to
+                                            },
+                                            _ => {}
+                                        }
+                                    }
+                                    for [swap_a, swap_b] in &swaps {
+                                        match (swap_a, swap_b) {
+                                            (from, to)|(to, from) if from.output() == o => {
                                                 o = to.output()
                                             }
-                                            (to, from) if from.output() == o => {
-                                                o = to.output()
-                                            },
                                             _ => {}
                                         }
                                     }
@@ -208,23 +220,39 @@ pub fn test_part2() {
                         }
                     }
 
-                    let expect_carry = [*a,b,overflow].iter().filter(|bit| **bit).count();
-                    if wires.get(name_z.as_str()).is_some_and(|v| *v == a ^ b ^ overflow) {
-                        let overflow = wires.into_iter().filter_map(|(name,value)| {
-                            todo!()
-                        });
+                    // Filter out any wires which are not valid for overflow
+                    candidate_overflow_wires = candidate_overflow_wires.iter().filter(|&w| wires.get(w) == Some(&overflow)).map(|i| i.clone()).collect();
+                    // Ensure output bit is valid, else abort the entire swap combination
+                    if !wires.get(name_z.as_str()).is_some_and(|&v| v == a ^ b ^ overflow) {
+                        return false;
                     }
-                    todo!()
-                    
+                    // Ensure there are at least some overflow bits remaining
+                    if candidate_overflow_wires.is_empty() {
+                        return false;
+                    }
+                    // Ensure we don't have any pointless swaps
+                    if !swaps.iter().all(|[a, b]| wires.contains_key(a.output()) && wires.contains_key(b.output())) {
+                        return false;
+                    }
+                    // Seems valid so far
+                    return true
                     // TODO: Only take the next state if
                     //       The output bit is correct
                     //       There is at least one bit acting like an overflow bit OR we are the last bit
                     //       All of the chosen swaps have an output (gates that don't participate in this layer should not predictively be swapped, they would have swapped already if lower, or will get swapped in a later iteration if higher
                 });
-            }
-        }
-        
-        return out;
+                if is_valid && !candidate_overflow_wires.is_empty(){
+                    Some(SearchState{
+                        swaps,
+                        prev_layer_overflow_wires: candidate_overflow_wires.iter().map(|s| s.to_owned()).collect(),
+                    })
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        return nextStates;
     }
     let mut search_state = vec!(SearchState{prev_layer_overflow_bits: vec!(String::from("false")), swaps: vec!()});
     
