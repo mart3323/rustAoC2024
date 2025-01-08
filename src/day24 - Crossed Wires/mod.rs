@@ -1,13 +1,15 @@
 mod parse;
+mod fresh_attempt_2;
+mod fresh_attempt_3;
 
 use crate::parse::{parse_network, Gate};
 use std::collections::{HashMap, HashSet};
 use std::future::Future;
-use std::rc::Rc;
+use std::io::{stdout, Write};
 use std::sync::{Arc, RwLock};
 use std::task::Waker;
 use std::thread;
-use nom::bits::bits;
+use std::time::Duration;
 use utils::read_input_file;
 use itertools;
 use itertools::Itertools;
@@ -140,13 +142,15 @@ pub fn part1() -> usize {
 pub fn test_part2() {
 
     println!("{:?}", std::env::current_dir());
+    stdout().flush().unwrap();
+    thread::sleep(Duration::from_millis(10));
     let network = parse_network(&read_input_file(DAY, "demo2.txt")).expect("Failed to parse network").1;
 
     // Note: wrong | Problem - What is being swapped is the output of an individual gate, NOT THE WHOLE WIRE
     //       wrong |           So i MUST NOT be swapping wires, instead i need a unique reference to reach gate
     // Note:       | Solution - Create unique IDs for each gate *OR* use something like an Rc<> to create comparable pointers to the same gate
     // TODO: This is incorrect. The problem statement guarantees that each wire is only connected to one output, so we can simplify it to pretend that the name of the wire *is* the name of the gate
-    
+
 
     let bits_of_output = (0..).find(|i| {
         !network.gates.iter().any(|gate| gate.output() == format!("z{:0>2}", i))
@@ -156,20 +160,23 @@ pub fn test_part2() {
         prev_layer_overflow_wires: Vec<String>,
         swaps: Vec<[String; 2]>
     }
-    fn next_states(gates: &Vec<Gate>, state: SearchState, bit: usize) -> Vec<SearchState> {
+    fn next_states(gates: &Vec<Gate>, state: &SearchState, bit: usize) -> Vec<SearchState> {
         let name_a = format!("a{:0>2}", bit);
         let name_b = format!("b{:0>2}", bit);
         let name_z = format!("z{:0>2}", bit);
 
-        let nextStates: Vec<SearchState> = (state.swaps.len()..=8)
+        println!("Getting next states");
+        let nextStates: Vec<SearchState> = (state.swaps.len()..=4)
             .flat_map(|totalSwaps| {
-                let swaps = 8 - totalSwaps;
-                let swap_options: Vec<Vec<[String; 2]>> = gates.iter()
-                    .array_combinations::<2>()
-                    .map(|[a,b]| [a.output().to_owned(), b.output().to_owned()])
-                    .combinations(swaps)
-                    .collect();
-                return swap_options;
+                let swaps = 4 - totalSwaps;
+                println!("Generating extra swaps of length {}", swaps);
+                (0..swaps)
+                    .flat_map(|swaps|
+                      gates.iter()
+                          .array_combinations::<2>()
+                          .map(|[a,b]| [a.output().to_owned(), b.output().to_owned()])
+                          .combinations(swaps)
+                    )
             })
             .filter_map(|swaps| {
                 /// Wires which, as far as tested so far, could potentially be valid overflow signals
@@ -182,19 +189,19 @@ pub fn test_part2() {
                         return true;
                     }
                     let mut wires = HashMap::new();
-                    wires.insert("false", false);
-                    wires.insert(&name_a, *a);
-                    wires.insert(&name_b, b);
+                    wires.insert(String::from("false"), false);
+                    wires.insert(name_a.clone(), *a);
+                    wires.insert(name_b.clone(), b);
                     state.prev_layer_overflow_wires.iter().for_each(|name| {
-                        wires.insert(name, overflow);
+                        wires.insert(name.clone(), overflow);
                     });
 
-                    'propagate_signal: loop {
+                    'propagate_signal: for _ in 0..10 {
                         let mut changed = false;
                         for gate in gates {
                             let [a, b] = gate.inputs();
                             let o = gate.output().to_owned();
-                            if !wires.contains_key(o.as_str()) {
+                            if !wires.contains_key(&o) {
                                 if let (Some(a), Some(b)) = (wires.get(a), wires.get(b)) {
                                     let mut o = o;
                                     for [swap_a, swap_b] in &state.swaps {
@@ -214,7 +221,7 @@ pub fn test_part2() {
                                         }
                                     }
                                     let o = o;
-                                    wires.insert(o.as_str(), gate.process(*a, *b));
+                                    wires.insert(o.clone(), gate.process(*a, *b));
                                     changed = true;
                                 }
                             }
@@ -223,22 +230,26 @@ pub fn test_part2() {
                             break;
                         }
                     }
-
+                    let s = format!("Considering swaps {swaps:?} in addition to {:?}", state.swaps);
                     // Filter out any wires which are not valid for overflow
-                    candidate_overflow_wires = candidate_overflow_wires.iter().filter(|&w| wires.get(w) == Some(&overflow)).map(|i| i.clone()).collect();
+                    candidate_overflow_wires = candidate_overflow_wires.iter().filter(|&w| wires.get(w.to_owned()) == Some(&overflow)).map(|i| i.clone()).collect();
                     // Ensure output bit is valid, else abort the entire swap combination
                     if !wires.get(name_z.as_str()).is_some_and(|&v| v == a ^ b ^ overflow) {
+                        println!("{}: It is not valid because the output bit is wrong", s);
                         return false;
                     }
                     // Ensure there are at least some overflow bits remaining
                     if candidate_overflow_wires.is_empty() {
+                        println!("{}: It is not valid because none of the wires are acting like an overflow", s);
                         return false;
                     }
                     // Ensure we don't have any pointless swaps
                     if !swaps.iter().all(|[a, b]| wires.contains_key(a.as_str()) || wires.contains_key(b.as_str())) {
+                        println!("{}: It is not valid because none of the wires are acting like an overflow", s);
                         return false;
                     }
                     // Seems valid so far
+                    println!("{}: It is valid", s);
                     return true
                 });
                 if is_valid {
@@ -255,61 +266,15 @@ pub fn test_part2() {
         return nextStates;
     }
     let mut search_state = vec!(SearchState{prev_layer_overflow_wires: vec!(), swaps: vec!()});
-    
+
     for bit in 0..bits_of_output {
-        search_state = search_state.iter().flat_map(|s| next_status(network.gates))
-        println!("Processing {}", bit);
-        let next_search_state: Vec<SearchState> = vec!();
-        for prev_state in search_state {
-            for a in [true, false] {
-                for b in [true, false] {
-                    for overflow in [true, false] {
-                        let mut wires: HashMap<String, bool> = HashMap::new();
-                        // Inject overflow and a/b bits
-                        wires.insert(prev_state.prev_layer_overflow_bit.clone(), overflow);
-                        wires.insert(format!("a{:0>2}", bit), a);
-                        wires.insert(format!("b{:0>2}", bit), b);
-                        // Simulate gates
-                        'run_gates_until_nothing_changes: loop {
-                            let mut changed = false;
-                            for gate in &network.gates {
-                                let [a, b] = gate.inputs();
-                                if let (Some(a), Some(b)) = (wires.get(a), wires.get(b)) {
-                                    wires.insert(gate.output().to_owned(), gate.process(*a, *b));
-                                    changed = true;
-                                }
-                            }
-                            if !changed {
-                                break;
-                            }
-                        }
-                        // Test for correct output
-                        let (sum, carry) = match a as u8 + b as u8 + overflow as u8 {
-                            0 => (false, false),
-                            1 => (true, false),
-                            2 => (false, true),
-                            _ => panic!("This should never happen"),
-                        };
-                        if wires.get(format!("z{:0>2}", bit)).is_some_and(|v| *v == sum) {
-                            let overflow_wires: Vec<String> = wires.iter().filter(|k, v| *v == carry).collect();
-                        }
-                    }
-                }
-            }
-        }
-        search_state = next_search_state
-        // TODO: Need a new simulation method which can handle partial inputs
-        //       it should either
-        //         a: Know the difference between "Value not yet known" and "Value is unknown"
-        //            (in that case i feed explicit "unknown" into all other inputs bits)
-        //            .
-        //         b: Instead of threads, propagate the changes directly, so we know we are done
-        //            when we process the last gate and there is no other gate connected to its output,
-        //            or the last gate doesn't get processed because it only has 1 input
-        //
-        //  Maybe try building it with Rcs
+        println!("Processing bit {bit}, states size: {}", search_state.len());
+        search_state = search_state
+            .iter()
+            .flat_map(|s| next_states(&network.gates, s, bit))
+            .filter(|s| s.prev_layer_overflow_wires.len() > 0 || bit == bits_of_output-1)
+            .collect();
     }
-    println!("{:?}", bits_of_output);
 }
 pub fn part2() -> usize {
     // Note: Reminder, the network should ADD the binary numbers

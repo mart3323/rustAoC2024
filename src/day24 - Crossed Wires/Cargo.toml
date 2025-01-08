@@ -10,3 +10,4 @@ path = "mod.rs"
 utils = { path = "../utils" }
 nom = "8.0.0-alpha2"
 itertools = "0.14.0"
+thiserror = "2.0.9"
