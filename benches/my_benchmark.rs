@@ -127,14 +127,12 @@ mod my_benchmark {
     #[divan::bench_group()]
     mod day24 {
         #[divan::bench] fn part1() { day24::part1(); }
-        #[ignore = "Not implemented yet"]
+        #[ignore = "Solved by hand"]
         #[divan::bench] fn part2() { day24::part2(); }
     }
     #[divan::bench_group()]
     mod day25 {
         #[divan::bench] fn part1() { day25::part1(); }
-        #[ignore = "No code"]
-        #[divan::bench] fn part2() { day25::part2(); }
     }
     
     

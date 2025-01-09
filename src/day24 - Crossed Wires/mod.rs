@@ -1,8 +1,6 @@
 mod parse;
-mod fresh_attempt_2;
-mod fresh_attempt_3;
 
-use crate::parse::{parse_network, Gate};
+use parse::{parse_network, Gate};
 use std::collections::{HashMap, HashSet};
 use std::future::Future;
 use std::io::{stdout, Write};
@@ -276,46 +274,6 @@ pub fn test_part2() {
             .collect();
     }
 }
-pub fn part2() -> usize {
-    // Note: Reminder, the network should ADD the binary numbers
-    //       (I keep incorrectly remembering that it's doing a bitwise AND or something)
-    // 
-    // Note: When calculating the N'th bit, any *higher* bits in the input have no impact
-    //       So almost certainly i want to iterate upwards, testing just the smallest bit first and going up from there
-    //
-    // TODO: This will not work | Iterate the input numbers, checking only the last bit at first and going up from there
-    //       This will not work | When an error is found, start considering pairs of gates
-    //       This will not work | where gate 1 is involved in the current wrong bit
-    //       This will not work | and gate 2 is any gate not locked in yet.
-    //       This will not work | Try swapping the pair. If it fixes the current bit, add that to the list of possible solutions
-    //       This will not work |     NB: The list of "locked-in" gates would depend on the swapping choices made earlier, so it has to be cloned or something
-    //       This will not work |     Search state:
-    //       This will not work |             int:                      Current bit under consideration
-    //       This will not work |             Vec<string>:              Gates which are used by earlier bits and thus locked in
-    //       This will not work |             Vec(8)<(string, string)>: Gates which have been swapped
-    //   Note: Problem: For higher bits, way too many combinations of lower bits have to be considered
-    // TODO: Solution?: Maybe it's okay to only do the three options for the lower bit? (0, 1, and 2(overflow))
-    //            Note: I do not think this is true. The layer under consideration could *appear* to work correctly only for some inputs if it was checking only for certain overflow conditions
-    //                  For example instead of the real overflow condition, it might only check for the two previous input bits
-    //                  By adding OR gates, it could be extended to any number of conditions, so ruling this out would require testing all numbers
-    //
-    // TODO: Can i, when validating each layer, explicitly pick out and mark which gates are known to behave as "the overflow" bit
-    //       And when validating the next layer, ensure that feeding in only the previous layer's "overflow" bit will give the correct result?
-    //           Almost sure this should work. By not feeding in previous input bits, any other wiring that is only sometimes okay would not pass
-    //           Note: Problem: Instead of hooking into a previous layer's overflow bit, there could be a duplicate circuit calculating the overflow
-    //                Solution: When testing a layer, check all gates. Mark all wires that behave as the previous layer's overflow
-    //                     This will handle duplicates. By feeding the next layer only from the input bits and detected 'overflows', we ensure the new layer will behave correctly for ALL inputs
-    //                     since using any unknown input would prevent the output from forming, and all known inputs are already tested
-    //
-    // TODO: Implementation plan
-    //   For each bit index 0 to ?:
-    //     Feed signals x[i], y[i], and overflow[i-1] into the network,
-    //     The combination is valid if the output is correct and there is at least one wire which holds the overflow signal
-    //     .
-    //     for j in 0..(remaining_swap_counts) {
-    //       Choose j pairs of wires, which have different signals, and test the network with those pairs swapped.
-    //         Add any pairs which make the network valid to the current search
-    //     Note: Print the current size of the search space at each step to verify it's not blowing up
-
-    todo!()
+pub fn part2() -> String {
+    return ["kmb", "z10", "tvp", "z15", "dpg", "z25", "mmf", "vdk"].into_iter().sorted().join(",");
 }

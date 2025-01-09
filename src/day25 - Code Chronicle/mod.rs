@@ -40,7 +40,3 @@ pub fn part1() -> usize {
     }
     return total;
 }
-
-pub fn part2() -> usize {
-    return 0
-}
