@@ -1,23 +1,41 @@
-use nom;
-use nom::{IResult, Parser};
+use peg;
 use std::str::FromStr;
 use utils::read_input_file;
 
 const DAY: &'static str = "day02 - Red Nosed Reports";
 
+
 // region input
-type Level = i32;
+type Level = isize;
 type Report = Vec<Level>;
 type Input = Vec<Report>;
-fn parse_line(input: &str) -> IResult<&str, Report> {
-    nom::multi::separated_list1(
-        nom::character::complete::space1,
-        nom::character::complete::digit1.map_res(i32::from_str),
-    )
-    .parse(input)
+
+peg::parser!{
+  grammar input_parser() for str {
+    rule number() -> isize
+      = n:$(['0'..='9']+) {
+            ? n.parse().or(Err("i32"))
+        }
+    rule report() -> Report
+        = r:(number() ++ " ") { r }
+
+    pub rule parse() -> Vec<Report>
+        = r:(report() ** "\n") "\n"? { r }
+  }
 }
-fn parse_file(input: &str) -> IResult<&str, Input> {
-    nom::multi::separated_list1(nom::character::complete::line_ending, parse_line).parse(input)
+
+#[test]
+fn test_parse() {
+    let input = "1 2 3 4 5\n\
+                8 4 2 6 5\n\
+                8 8 8 8 8\n\
+               ";
+    let expect = vec!(
+        vec!(1,2,3,4,5),
+        vec!(8,4,2,6,5),
+        vec!(8,8,8,8,8)
+    );
+    assert_eq!(input_parser::parse(input), Ok(expect));
 }
 // endregion
 
@@ -43,11 +61,11 @@ fn report_is_safe(report: &Report) -> bool {
     }
     return true;
 }
-fn is_valid_pair(a: i32, b: i32) -> bool {
+fn is_valid_pair(a: isize, b: isize) -> bool {
     let diff = (b - a).abs();
     1 <= diff && diff <= 3
 }
-fn are_sequential(a: i32, b: i32, c: i32) -> bool {
+fn are_sequential(a: isize, b: isize, c: isize) -> bool {
     (a - b).signum() == (b - c).signum()
 }
 
@@ -72,7 +90,7 @@ fn report_is_safeish(report: &Report) -> bool {
                 return false;
             }
             let is_valid_pair_with_dir =
-                |a: i32, b: i32| is_valid_pair(a, b) && (b - a).signum() == expected_signum;
+                |a: isize, b: isize| is_valid_pair(a, b) && (b - a).signum() == expected_signum;
 
             #[derive(Debug)]
             enum Error {
@@ -154,30 +172,30 @@ fn solve2(reports: &Input) -> usize {
 #[test]
 fn test_part1() {
     let demo = read_input_file(DAY, "demo.txt");
-    let input = parse_file(&demo).expect("Demo input should parse").1;
+    let input = input_parser::parse(&demo).expect("Demo input should parse");
     assert_eq!(solve(&input), 2)
 }
 #[test]
 fn test_part2_naive() {
     let demo = read_input_file(DAY, "demo.txt");
-    let input = parse_file(&demo).expect("Demo input should parse").1;
+    let input = input_parser::parse(&demo).expect("Demo input should parse");
     assert_eq!(solve2_naive(&input), 4)
 }
 #[test]
 fn test_part2() {
     let demo = read_input_file(DAY, "demo.txt");
-    let input = parse_file(&demo).expect("Demo input should parse").1;
+    let input = input_parser::parse(&demo).expect("Demo input should parse");
     assert_eq!(solve2(&input), 4)
 }
 pub fn part1() -> usize {
     let full = read_input_file(DAY, "full.txt");
-    let input = parse_file(&full).expect("Full input should parse").1;
+    let input = input_parser::parse(&full).expect("Full input should parse");
     let solution = solve(&input);
     return solution;
 }
 pub fn part2() -> usize {
     let full = read_input_file(DAY, "full.txt");
-    let input = parse_file(&full).expect("Full input should parse").1;
+    let input = input_parser::parse(&full).expect("Full input should parse");
     let solution = solve2_naive(&input);
     return solution;
 }

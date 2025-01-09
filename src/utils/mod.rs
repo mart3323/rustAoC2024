@@ -49,3 +49,8 @@ impl Timer {
         Timer(op, now)
     }
 }
+
+#[test]
+fn test_fn() {
+    assert_eq!(1,2);
+}
