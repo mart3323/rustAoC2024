@@ -1,41 +1,19 @@
-use peg;
+mod parse;
+use parse::Pair;
+
 use std::cmp::Reverse;
 use std::collections::BinaryHeap;
 use utils::read_input_file;
 
-#[derive(Eq, PartialEq, Debug)]
-struct Pair {
-    left: usize,
-    right: usize,
-}
-
-peg::parser!{
-  grammar input_parser() for str {
-    rule number() -> usize
-      = n:$(['0'..='9']+) {
-            ? n.parse().or(Err("i32"))
-        }
-
-    rule pair() -> Pair
-      = l:number() " "+ r:number() {
-            Pair{left: l, right: r}
-        }
-
-    pub rule parse() -> Vec<Pair>
-        = p:pair() ** "\n" "\n"? { p }
-  }
-}
 
 const DAY: &'static str = "day01 - Historian Hysteria";
 
-type Input = (BinaryHeap<Reverse<i32>>, BinaryHeap<Reverse<i32>>);
-
 fn parse_demo() -> Vec<Pair> {
-    input_parser::parse(&read_input_file(DAY, "demo.txt"))
+    parse::parse_input(&read_input_file(DAY, "demo.txt"))
         .expect("demo.txt file to be present and valid")
 }
 fn parse_full() -> Vec<Pair> {
-    input_parser::parse(&read_input_file(DAY, "full.txt"))
+    parse::parse_input(&read_input_file(DAY, "full.txt"))
         .expect("full.txt file to be present and valid")
 }
 fn solve_part1(input: &Vec<Pair>) -> Result<usize, &'static str> {
@@ -116,7 +94,7 @@ fn test_parse() {
         Pair{left: 3, right: 4},
         Pair{left: 5, right: 6},
     );
-    let pairs = input_parser::parse(s).expect("Should parse");
+    let pairs = parse::parse_input(s).expect("Should parse");
     assert_eq!(pairs, expected)
 }
 

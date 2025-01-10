@@ -1,4 +1,7 @@
-use nom::{IResult, Parser};
+use std::ops::Not;
+use itertools::Itertools;
+use peg::error::ParseError;
+use peg::str::LineCol;
 
 pub enum Gate {
     XOR(String, String, String),
@@ -33,59 +36,30 @@ pub struct Network {
     pub gates: Vec<Gate>
 }
 
-fn parse_wire(data: &str) -> IResult<&str, (String, bool)> {
-    return nom::sequence::separated_pair(
-        nom::character::complete::alphanumeric1,
-        nom::bytes::complete::tag(": "),
-        nom::character::complete::one_of("01")
-            .map(|s| match s {
-                '0' => false,
-                '1' => true,
-                _ => panic!("This should never happen")
-            })
-    )
-        .map(|(id, val)| (String::from(id), val))
-        .parse(data);
+peg::parser! {
+    pub grammar parser() for str {
+        rule identifier() -> String
+            = c:([c if c.is_ascii() && !c.is_ascii_whitespace() ]*<3>)
+            { c.into_iter().join("") }
+
+        rule gate() -> Gate
+            = a:identifier() " " "XOR" " " b:identifier() " -> " out:identifier() { Gate::XOR(a,b,out) }
+            / a:identifier() " " "AND" " " b:identifier() " -> " out:identifier() { Gate::AND(a,b,out) }
+            / a:identifier() " " "OR"  " " b:identifier() " -> " out:identifier() { Gate::OR(a,b,out) }
+
+        rule wire() -> (String, bool)
+            = n:identifier() ": 0" { (n, false) }
+            / n:identifier() ": 1" { (n, true) }
+
+        rule network() -> Network
+            = w:(w:wire() "\n" { w })+
+                "\n"
+                g:(g:gate() "\n" { g })+ { Network {initial_values: w, gates: g}}
+        
+        pub rule parse() -> Network = network()
+    }
 }
 
-fn parse_gate(data: &str) -> IResult<&str, Gate> {
-    nom::sequence::separated_pair(
-        (
-            nom::character::complete::alphanumeric1,
-            nom::branch::alt([
-                nom::bytes::complete::tag(" OR "),
-                nom::bytes::complete::tag(" XOR "),
-                nom::bytes::complete::tag(" AND ")
-            ]),
-            nom::character::complete::alphanumeric1,
-        ),
-        nom::bytes::complete::tag(" -> "),
-        nom::character::complete::alphanumeric1
-    )
-        .map(|((a,typ,b), out)| {
-            match typ {
-                " AND " => Gate::AND(String::from(a),String::from(b),String::from(out)),
-                " XOR " => Gate::XOR(String::from(a),String::from(b),String::from(out)),
-                " OR " => Gate::OR(String::from(a),String::from(b),String::from(out)),
-                _ => panic!("This should never happen")
-            }
-        })
-        .parse(data)
-}
-
-pub fn parse_network(data: &str) -> IResult<&str, Network> {
-    let ln = nom::character::complete::line_ending;
-    nom::sequence::separated_pair(
-        nom::multi::separated_list1(ln, parse_wire),
-        (ln, ln),
-        nom::multi::separated_list1(ln, parse_gate)
-    )
-        .map(|(wires, gates)| {
-            
-            Network {
-                initial_values: wires,
-                gates,
-            }
-        })
-        .parse(data)
+pub fn parse_input(input: &str) -> Result<Network, ParseError<LineCol>> {
+    parser::parse(input)
 }

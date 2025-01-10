@@ -1,6 +1,6 @@
 mod parse;
 
-use parse::{parse_network, Gate};
+use parse::{parse_input, Gate};
 use std::collections::{HashMap, HashSet};
 use std::future::Future;
 use std::io::{stdout, Write};
@@ -87,7 +87,7 @@ fn run_gate(gate: Gate, wires: SharedWires) {
 
 #[test]
 fn test_wires() {
-    let network = parse_network(&read_input_file(DAY, "demo.txt")).expect("Failed to parse network").1;
+    let network = parse_input(&read_input_file(DAY, "demo.txt")).expect("Failed to parse network");
     let mut wires = SharedWires::new();
     for (id, val) in network.initial_values {
         wires.output_value(&id, val)
@@ -112,7 +112,7 @@ fn test_wires() {
 }
 
 pub fn part1() -> usize {
-    let network = parse_network(&read_input_file(DAY, "full.txt")).expect("Failed to parse network").1;
+    let network = parse_input(&read_input_file(DAY, "full.txt")).expect("Failed to parse network");
     let mut wires = SharedWires::new();
     for (id, val) in network.initial_values {
         wires.output_value(&id, val)
@@ -142,7 +142,7 @@ pub fn test_part2() {
     println!("{:?}", std::env::current_dir());
     stdout().flush().unwrap();
     thread::sleep(Duration::from_millis(10));
-    let network = parse_network(&read_input_file(DAY, "demo2.txt")).expect("Failed to parse network").1;
+    let network = parse_input(&read_input_file(DAY, "demo2.txt")).expect("Failed to parse network");
 
     // Note: wrong | Problem - What is being swapped is the output of an individual gate, NOT THE WHOLE WIRE
     //       wrong |           So i MUST NOT be swapping wires, instead i need a unique reference to reach gate
