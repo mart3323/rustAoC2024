@@ -1,116 +1,107 @@
 mod parse;
+mod test;
+
 use parse::Pair;
 
 use std::cmp::Reverse;
-use std::collections::BinaryHeap;
-use utils::read_input_file;
+use std::collections::hash_map::Iter;
+use std::collections::{BinaryHeap, HashMap};
+use std::iter::zip;
 
+/// Given a list of pairs, adds together the absolute differences of each pair
+///
+/// For example
+/// ```txt
+/// inputs     absolute_diff
+/// 10  19  |  4
+/// 15  20  |  5
+/// 15  20  |  5
+/// 20  5   |  15
+/// 10  3   |  7
+/// 5   1   |  4
+/// ```
+/// Will sum up to a total of 45
+fn solve_part1(input: &Vec<Pair>) -> usize {
+    // Collect both lists into a heap, allowing for easy&fast access to the elements in order of smallest to largest
+    let mut left = BinaryHeap::new();
+    let mut right = BinaryHeap::new();
+    input.iter().for_each(|pair| {
+        left.push(Reverse(pair.left));
+        right.push(Reverse(pair.right));
+    });
 
-const DAY: &'static str = "day01 - Historian Hysteria";
+    // SANITY CHECK: Lists are equal (zip will silently drop extra elements)
+    // Should be guaranteed by the parser, but no harm being explicit (and reminding ourselves that this is checked)
+    assert_eq!(left.len(), right.len());
 
-fn parse_demo() -> Vec<Pair> {
-    parse::parse_input(&read_input_file(DAY, "demo.txt"))
-        .expect("demo.txt file to be present and valid")
+    zip(left.into_sorted_vec(), right.into_sorted_vec())
+        .map(|(Reverse(l), Reverse(r))| l.abs_diff(r))
+        .sum()
 }
+
+struct Counter(HashMap<usize, usize>);
+impl Counter {
+    fn new() -> Self {
+        Counter(HashMap::new())
+    }
+    fn inc(&mut self, key: usize) {
+        self.0.insert(key, self.get(key) + 1);
+    }
+    fn get(&self, key: usize) -> usize {
+        *self.0.get(&key).unwrap_or(&0usize)
+    }
+    fn iter(&self) -> Iter<'_, usize, usize> {
+        self.0.iter()
+    }
+}
+/// Given a list of pairs that represents two lists, adds together all values which are present in both lists
+/// multiplied by the count in each list
+/// 
+/// For example
+/// ```txt
+/// 10  19
+/// 15  20
+/// 15  20
+/// 20  5
+/// 10  3
+/// 5   1
+/// ```
+/// | value | left       | right       | total value |
+/// |-------|------------|-------------|-------------|
+/// | 20    | 1x         | 2x          |  40         |
+/// | 5     | 1x         | 1x          |  5          |
+/// 
+/// Will sum up to a total of 45
+fn solve_part2(input: &Vec<Pair>) -> usize {
+    let mut left = Counter::new();
+    let mut right = Counter::new();
+    input.iter().for_each(|pair| {
+        left.inc(pair.left);
+        right.inc(pair.right);
+    });
+
+    left
+        .iter()
+        .map(|(&value, &count_left)| {
+            let count_right = right.get(value);
+            return value * count_left * count_right;
+        })
+        .sum()
+}
+
+const FULL: &'static str = include_str!("inputs/full.txt");
+
 fn parse_full() -> Vec<Pair> {
-    parse::parse_input(&read_input_file(DAY, "full.txt"))
-        .expect("full.txt file to be present and valid")
+    parse::parse_input(FULL).expect("Full input to parse")
 }
-fn solve_part1(input: &Vec<Pair>) -> Result<usize, &'static str> {
-    let mut left = BinaryHeap::new();
-    let mut right = BinaryHeap::new();
-    input.iter().for_each(|pair| {
-        left.push(Reverse(pair.left));
-        right.push(Reverse(pair.right));
-    });
-
-    let mut total_difference: usize = 0;
-    loop {
-        if let (Some(Reverse(l)), Some(Reverse(r))) = (left.pop(), right.pop()) {
-            total_difference += l.abs_diff(r);
-        } else {
-            // Out of values?
-            return if left.is_empty() && right.is_empty() {
-                Ok(total_difference)
-            } else {
-                Err("Unable to read values, but both lists are not yet empty")?
-            }
-        }
-    }
-
-}
-
-fn solve_part2(input: &Vec<Pair>) -> Result<usize, &'static str> {
-    let mut left = BinaryHeap::new();
-    let mut right = BinaryHeap::new();
-    input.iter().for_each(|pair| {
-        left.push(Reverse(pair.left));
-        right.push(Reverse(pair.right));
-    });
-
-    let mut difference_score: usize = 0;
-    let mut prev_value_left: Option<usize> = None;
-    let mut count = 0;
-    loop {
-        if let Some(Reverse(value_left)) = left.pop() {
-            // Workaround: Maintain count when left has a duplicate value
-            if Some(value_left) == prev_value_left {
-                difference_score += value_left as usize * count;
-                continue;
-            }
-            // Otherwise, start over the count with the new value
-            prev_value_left = Some(value_left);
-            count = 0;
-            loop {
-                if let Some(Reverse(v)) = right.pop() {
-                    if v > value_left {
-                        right.push(Reverse(v));
-                        break;
-                    } else if v == value_left {
-                        count += 1;
-                    } else {
-                        // continue
-                    }
-                } else {
-                    break // Ran out of items in right list
-                }
-            }
-            difference_score += value_left * count;
-        } else {
-            break // Ran out of items in left list
-        }
-    }
-    Ok(difference_score)
-}
-
 #[test]
-fn test_parse() {
-    let s = "1    2\n\
-                   3   4\n\
-                   5   6\n\
-    ";
-    let expected = vec!(
-        Pair{left: 1, right: 2},
-        Pair{left: 3, right: 4},
-        Pair{left: 5, right: 6},
-    );
-    let pairs = parse::parse_input(s).expect("Should parse");
-    assert_eq!(pairs, expected)
+fn full_input_parses() {
+    parse_full();
 }
 
-#[test]
-fn test_part_1() {
-    assert_eq!(solve_part1(&parse_demo()), Ok(11));
-}
-
-#[test]
-fn test_part_2() {
-    assert_eq!(solve_part2(&parse_demo()), Ok(31));
-}
-
-fn part1() -> Result<usize, &'static str> {
+pub fn part1() -> usize {
     solve_part1(&parse_full())
 }
-fn part2() -> Result<usize, &'static str> {
+pub fn part2() -> usize {
     solve_part2(&parse_full())
 }

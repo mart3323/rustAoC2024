@@ -1,10 +1,6 @@
 [package]
-name = "day01"
+name = "aoc_utils"
 version = "0.1.0"
 edition = "2021"
 
-[lib]
-path = "mod.rs"
-
 [dependencies]
-peg = "0.8.4"
