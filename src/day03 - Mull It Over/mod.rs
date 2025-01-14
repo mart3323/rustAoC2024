@@ -1,100 +1,38 @@
-use nom;
-use nom::Parser;
+mod parse;
+mod test;
+
 use utils::read_input_file;
 
-const DAY: &'static str = "day03 - Mull It Over";
+const FULL: &'static str = include_str!("inputs/full.txt");
 
-// region parsers
-#[derive(Debug, Clone)]
-enum Instruction {
-    Mul(usize, usize),
-    Skip,
-    Do,
-    Dont,
-}
-fn parse_int(input: &str) -> nom::IResult<&str, usize> {
-    use nom::character::complete::digit1;
-    digit1.map_res(str::parse).parse(input)
-}
-
-fn parse_instruction(input: &str) -> nom::IResult<&str, Instruction> {
-    use nom::branch::alt;
-    use nom::bytes::tag;
-    use nom::combinator::value;
-    use nom::combinator::complete;
-    use Instruction::*;
-
-    let token_do = value(Do, tag("do()"));
-    let token_dont = value(Dont, tag("don't()"));
-    let token_mul = (tag("mul("), parse_int, tag(","), parse_int, tag(")"))
-        .map(|(_, left, _, right, _)| Mul(left, right));
-    let token_invalid = value(Skip, nom::bytes::complete::take(1usize));
-
-    let token_valid = complete(alt((token_do, token_dont, token_mul)));
-    alt((token_valid, token_invalid)).parse(input)
-}
-// endregion
-
-fn solve_simple(input: String) -> usize {
-    use nom::multi::fold_many1;
-
-    let mut sum = fold_many1(
-        parse_instruction,
-        || 0,
-        |sum, instruction| match instruction {
-            Instruction::Mul(a, b) => sum + (a * b),
-            _ => sum,
-        },
-    );
-    sum.parse(input.as_str()).unwrap().1
-}
-
-fn solve_advanced(input: String) -> usize {
-    use nom::multi::fold_many1;
-    use Instruction::*;
-
-    struct State(bool, usize);
-    impl State {
-        fn value(self) -> usize {
-            self.1
-        }
-    }
-
-    let mut sum = fold_many1(
-        parse_instruction,
-        || State(true, 0),
-        |state, instruction| match instruction {
-            Mul(a, b) => {
-                if state.0 {
-                    State(true, state.1 + (a * b))
-                } else {
-                    state
-                }
-            }
-            Skip => state,
-            Do => State(true, state.1),
-            Dont => State(false, state.1),
-        },
-    );
-    sum.parse(input.as_str()).unwrap().1.value()
-}
-
-#[test]
-fn test_solve() {
-    let demo = read_input_file(DAY, "demo.txt");
-    assert_eq!(solve_simple(demo), 161);
+fn parse_full_part1() -> Vec<parse::Mul> {
+    parse::parse_part1(FULL).expect("Full input to parse")
 }
 #[test]
-fn test_solve_advanced() {
-    let demo = read_input_file(DAY, "demo2.txt");
-    assert_eq!(solve_advanced(demo), 48);
+fn full_input_parses_part1() {
+    parse_full_part1();
 }
+
+fn parse_full_part2() -> Vec<parse::Mul> {
+    parse::parse_part1(FULL).expect("Full input to parse")
+}
+#[test]
+fn full_input_parses_part2() {
+    parse_full_part2();
+}
+
+
+fn solve(input: Vec<parse::Mul>) -> usize {
+    input
+        .into_iter()
+        .map(|mul| mul.value())
+        .sum()
+}
+
 
 pub fn part1() -> usize {
-    let full = read_input_file(DAY, "full.txt");
-    solve_simple(full)
+    solve(parse_full_part1())
 }
 pub fn part2() -> usize {
-    let full = read_input_file(DAY, "full.txt");
-    solve_advanced(full)
+    solve(parse_full_part2())
 }

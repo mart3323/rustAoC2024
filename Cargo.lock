@@ -440,7 +440,7 @@ dependencies = [
 name = "day03"
 version = "0.1.0"
 dependencies = [
- "nom 8.0.0-alpha2",
+ "peg",
  "utils",
 ]
 

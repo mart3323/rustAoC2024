@@ -1,45 +1,7 @@
-use peg;
-use std::str::FromStr;
-use utils::read_input_file;
+mod parse;
+mod test;
 
-const DAY: &'static str = "day02 - Red Nosed Reports";
-
-
-// region input
-type Level = isize;
-type Report = Vec<Level>;
-type Input = Vec<Report>;
-
-peg::parser!{
-  grammar input_parser() for str {
-    rule number() -> isize
-      = n:$(['0'..='9']+) {
-            ? n.parse().or(Err("i32"))
-        }
-    rule report() -> Report
-        = r:(number() ++ " ") { r }
-
-    pub rule parse() -> Vec<Report>
-        = r:(report() ** "\n") "\n"? { r }
-  }
-}
-
-#[test]
-fn test_parse() {
-    let input = "1 2 3 4 5\n\
-                8 4 2 6 5\n\
-                8 8 8 8 8\n\
-               ";
-    let expect = vec!(
-        vec!(1,2,3,4,5),
-        vec!(8,4,2,6,5),
-        vec!(8,8,8,8,8)
-    );
-    assert_eq!(input_parser::parse(input), Ok(expect));
-}
-// endregion
-
-fn report_is_safe(report: &Report) -> bool {
+fn report_is_safe(report: &parse::Report) -> bool {
     if report.is_empty() {
         return true;
     }
@@ -59,7 +21,7 @@ fn report_is_safe(report: &Report) -> bool {
             return false;
         }
     }
-    return true;
+    true
 }
 fn is_valid_pair(a: isize, b: isize) -> bool {
     let diff = (b - a).abs();
@@ -69,7 +31,7 @@ fn are_sequential(a: isize, b: isize, c: isize) -> bool {
     (a - b).signum() == (b - c).signum()
 }
 
-fn report_is_safeish(report: &Report) -> bool {
+fn report_is_safeish(report: &parse::Report) -> bool {
     match report.len() {
         0 => true,
         1 => true,
@@ -108,7 +70,7 @@ fn report_is_safeish(report: &Report) -> bool {
                         Error::Either(prev_index) if prev_index == i - 1 => {
                             let can_remove =
                                 is_valid_pair_with_dir(report[i - 1], report[i + 1]);
-                            if (can_remove) {
+                            if can_remove {
                                 error_found_at = Error::Must(i)
                             } else {
                                 return false;
@@ -135,31 +97,16 @@ fn report_is_safeish(report: &Report) -> bool {
                     }
                 }
             }
-            return true;
+            true
         }
     }
-}
-fn report_is_safeish_dumb_version(report: &Report) -> bool {
-    for i in 0..report.len() {
-        let mut candidate = report.clone();
-        candidate.remove(i);
-        if report_is_safe(&candidate) {
-            return true;
-        }
-    }
-    return false;
 }
 
+type Input = Vec<parse::Report>;
 fn solve(reports: &Input) -> usize {
     reports
         .iter()
         .filter(|r| report_is_safe(r))
-        .count()
-}
-fn solve2_naive(reports: &Input) -> usize {
-    reports
-        .iter()
-        .filter(|r| report_is_safeish_dumb_version(r))
         .count()
 }
 fn solve2(reports: &Input) -> usize {
@@ -169,33 +116,19 @@ fn solve2(reports: &Input) -> usize {
         .count()
 }
 
-#[test]
-fn test_part1() {
-    let demo = read_input_file(DAY, "demo.txt");
-    let input = input_parser::parse(&demo).expect("Demo input should parse");
-    assert_eq!(solve(&input), 2)
+const FULL: &'static str = include_str!("inputs/full.txt");
+
+fn parse_full() -> Vec<parse::Report> {
+    parse::parse_reports_file(FULL).expect("Full input to parse")
 }
 #[test]
-fn test_part2_naive() {
-    let demo = read_input_file(DAY, "demo.txt");
-    let input = input_parser::parse(&demo).expect("Demo input should parse");
-    assert_eq!(solve2_naive(&input), 4)
+fn full_input_parses() {
+    parse_full();
 }
-#[test]
-fn test_part2() {
-    let demo = read_input_file(DAY, "demo.txt");
-    let input = input_parser::parse(&demo).expect("Demo input should parse");
-    assert_eq!(solve2(&input), 4)
-}
+
 pub fn part1() -> usize {
-    let full = read_input_file(DAY, "full.txt");
-    let input = input_parser::parse(&full).expect("Full input should parse");
-    let solution = solve(&input);
-    return solution;
+    solve(&parse_full())
 }
 pub fn part2() -> usize {
-    let full = read_input_file(DAY, "full.txt");
-    let input = input_parser::parse(&full).expect("Full input should parse");
-    let solution = solve2_naive(&input);
-    return solution;
+    solve2(&parse_full())
 }
