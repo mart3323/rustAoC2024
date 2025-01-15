@@ -433,16 +433,11 @@ name = "day02"
 version = "0.1.0"
 dependencies = [
  "peg",
- "utils",
 ]
 
 [[package]]
 name = "day03"
 version = "0.1.0"
-dependencies = [
- "peg",
- "utils",
-]
 
 [[package]]
 name = "day04"
